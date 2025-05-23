@@ -1,0 +1,43 @@
+﻿# ===== ANÁLISE DE DADOS =====
+pandas==2.2.3
+numpy==1.26.4
+
+# ===== FONTES DE DADOS FINANCEIROS =====
+finnhub-python>=2.4.0
+python-bcb>=0.1.6
+requests>=2.28.0
+statsmodels==0.14.4
+investpy==1.0.8
+fredapi==0.5.2
+yfinance==0.2.61
+Nasdaq-Data-Link==1.0.4
+
+# ===== INTERFACE DE TERMINAL =====
+rich>=13.0.0
+blessed>=1.19.0
+tabulate>=0.9.0
+
+# ===== VISUALIZAÇÃO =====
+plotext>=5.0.0
+matplotlib>=3.6.0
+plotly>=5.15.0
+
+# ===== INDICADORES TÉCNICOS =====
+ta>=0.10.0
+
+# ===== MACHINE LEARNING =====
+scikit-learn>=1.1.0
+tensorflow>=2.10.0
+keras>=2.10.0
+
+# ===== SÉRIES TEMPORAIS =====
+prophet>=1.1.0  
+
+# ===== UTILITÁRIOS =====
+python-decouple>=3.6  
+requests>=2.28.0
+python-dotenv>=0.20.0
+
+# ===== DESENVOLVIMENTO E TESTES =====
+pytest>=7.0.0
+pytest-cov>=4.0.0
