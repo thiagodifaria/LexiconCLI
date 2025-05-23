@@ -134,10 +134,10 @@ pytest tests/test_models.py::test_lstm_prediction
 ### Dashboard Principal
 ![Dashboard Principal](./images/dashboard_principal.png)
 
-### Análise de Ativo - AMZN
+### Análise de Ativo - (AMZN)
 ![Análise AMZN](./images/analise_amzn.png)
 
-### Previsão LSTM - AMZN
+### Previsão LSTM - (AMZN)
 ![Previsão LSTM](./images/previsao_lstm_amzn.png)
 
 ## 🔄 Fluxo de Desenvolvimento
@@ -195,7 +195,6 @@ docker run -it --rm lexicon-cli
 - [ ] **Interface Gráfica (GUI)**: Implementação com PySide6
 - [ ] **Testes Expandidos**: Maior cobertura e testes de borda
 - [ ] **Persistência de Modelos**: Salvar modelos treinados (LSTM/Prophet)
-- [ ] **Novas APIs**: Integração com fontes de notícias e análise de sentimento
 - [ ] **Análise Fundamentalista**: Balanços, DREs, fluxos de caixa
 - [ ] **Alertas Avançados**: Notificações do sistema operacional
 - [ ] **Backtesting**: Simulação de estratégias de trading
