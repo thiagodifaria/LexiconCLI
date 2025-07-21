@@ -4,7 +4,7 @@ LexiconCLI é um sistema de análise financeira interativo e de última geraçã
 
 ## 🚀 Executável Disponível
 
-📦 **Download Direto**: Executável pré-compilado disponível na seção [Releases](https://github.com/thiagodifaria/LexiconCLI/releases) - Sem necessidade de instalação do Python!
+📦 **Download Direto**: Executável pré-compilado disponível na seção [Releases](https://github.com/thiagodifaria/LexiconCLI/releases/download/v2.0.0/LexiconCLI.exe) - Sem necessidade de instalação do Python!
 
 ## 🎯 Funcionalidades
 
