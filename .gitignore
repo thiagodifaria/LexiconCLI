@@ -1,11 +1,247 @@
-venv/
-*.pyc
+# ===== PYTHON =====
+# Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec.bak
+build.txt
+
+# ===== AMBIENTE VIRTUAL =====
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# ===== CONFIGURAÇÕES E SECRETS =====
 .env
+.env.local
+.env.production
+.env.staging
+config/api_keys.py
+*.key
+*.pem
+*.p12
+secrets/
 
-logs/*.log
+# ===== DADOS E CACHE =====
+# Banco de dados
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 
+# Cache do sistema
+cache/
+.cache/
+__pycache__/
+.pytest_cache/
+
+# Dados históricos em cache
+data/cache/
+data/temp/
+data/raw/
+data/downloads/
+
+# ===== MODELOS TREINADOS =====
+# Modelos grandes
+data/trained_models/*.h5
+data/trained_models/*.pkl
+data/trained_models/*.joblib
+data/trained_models/*.keras
+data/trained_models/*.onnx
+data/trained_models/*.pb
+
+# Manter apenas estrutura de diretório
+!data/trained_models/.gitkeep
+
+# ===== LOGS =====
+logs/
+*.log
+*.log.*
+log/
+.logs/
+
+# ===== DATASETS AUMENTADOS =====
+data/augmented_datasets/
+data/processed/
+data/interim/
+
+# ===== EXECUTÁVEIS =====
+# PyInstaller output
+dist/
+build/
+*.exe
+*.app
+*.dmg
+*.deb
+*.rpm
+
+# Arquivos de build
+*.manifest
+*.spec.bak
+build.txt
+
+# ===== RELATÓRIOS E EXPORTS =====
+exports/
+reports/
+*.html
+*.pdf
+*.xlsx
+*.csv
+!requirements.txt
+
+# Gráficos gerados
+plots/
+charts/
+backtest_*.html
+monte_carlo_*.png
+
+# ===== IDEs E EDITORES =====
+# VSCode
 .vscode/
+*.code-workspace
+
+# PyCharm
 .idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# Vim
 *.swp
 *.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ===== SISTEMA OPERACIONAL =====
+# Windows
+Thumbs.db
+Desktop.ini
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ===== JUPYTER NOTEBOOKS =====
+.ipynb_checkpoints/
+*.ipynb
+
+# ===== PLOTLY/MATPLOTLIB =====
+.plotly/
+figure_*.png
+plot_*.png
+
+# ===== TENSORFLOW/KERAS =====
+# TensorBoard logs
+runs/
+logs/tensorboard/
+.tensorboard/
+
+# Checkpoint files
+*.ckpt
+*.ckpt.*
+checkpoint
+
+# ===== BACKUP E TEMP =====
+*.bak
+*.backup
+*.tmp
+*.temp
+.temp/
+temp/
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ===== TESTES =====
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ===== DOCUMENTAÇÃO =====
+docs/_build/
+.readthedocs.yml
+
+# ===== ESPECÍFICO DO PROJETO =====
+# Dados sensíveis do mercado
+market_data_private/
+proprietary_data/
+
+# Configurações de usuário
+user_preferences.json
+local_settings.py
+
+# Experimentos
+experiments/
+sandbox/
+scratch/
+
+# Dados de desenvolvimento
+dev_data/
+test_data/large/
+
+# ===== MANTER ESTRUTURAS IMPORTANTES =====
+# Manter diretórios importantes vazios
+!data/.gitkeep
+!logs/.gitkeep
+!exports/.gitkeep
+!cache/.gitkeep
+
+# Manter arquivos de configuração exemplo
+!config/settings_example.py
+!.env.example

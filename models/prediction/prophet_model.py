@@ -41,13 +41,15 @@ class ModeloProphet:
         df_prophet['ds'] = pd.to_datetime(df_prophet['ds'])
         
         if df_prophet['ds'].dt.tz is not None:
-            logger.info(f"Removendo fuso horário da coluna 'ds' para o Prophet. Fuso original: {df_prophet['ds'].dt.tz}")
+            logger.info(f"Removendo fuso horário da coluna 'ds' para o Prophet.")
             df_prophet['ds'] = df_prophet['ds'].dt.tz_localize(None)
         
-        df_prophet = df_prophet[colunas_necessarias].dropna(subset=['ds', 'y'])
+        df_prophet = df_prophet[colunas_necessarias].dropna()
 
         if df_prophet.empty:
             logger.error("DataFrame vazio após preparação e tratamento de NaNs para Prophet.")
+        else:
+            logger.info(f"Prophet preparado com {len(self.colunas_regressores)} regressores: {self.colunas_regressores}")
         
         return df_prophet
 
@@ -68,16 +70,19 @@ class ModeloProphet:
             for regressor in self.colunas_regressores:
                 if regressor in df_treino_prophet.columns:
                     self.model.add_regressor(regressor)
+                    logger.info(f"Regressor '{regressor}' adicionado ao modelo Prophet.")
                 else:
                     logger.warning(f"Regressor '{regressor}' não encontrado no df_treino_prophet durante add_regressor.")
         
         try:
             self.model.fit(df_treino_prophet)
-            logger.info("Modelo Prophet treinado com sucesso.")
+            if self.colunas_regressores:
+                logger.info(f"Modelo Prophet multivariado treinado com {len(self.colunas_regressores)} regressores.")
+            else:
+                logger.info("Modelo Prophet univariado treinado com sucesso.")
         except Exception as e:
             logger.error(f"Erro ao treinar modelo Prophet: {e}")
             self.model = None
-
 
     def prever_futuro(self, periodos: int, frequencia: str = 'D', df_regressores_futuros: pd.DataFrame = None):
         if self.model is None:
@@ -88,7 +93,7 @@ class ModeloProphet:
 
         if self.colunas_regressores:
             if df_regressores_futuros is None or df_regressores_futuros.empty:
-                logger.error("Regressores foram usados no treino, mas df_regressores_futuros não foi fornecido ou está vazio para previsão.")
+                logger.error("Regressores foram usados no treino, mas df_regressores_futuros não foi fornecido para previsão.")
                 return pd.DataFrame()
             
             if 'ds' not in df_regressores_futuros.columns:
@@ -100,25 +105,25 @@ class ModeloProphet:
             if df_regressores_futuros['ds'].dt.tz is not None:
                 df_regressores_futuros['ds'] = df_regressores_futuros['ds'].dt.tz_localize(None)
 
-
             missing_regressors = [reg for reg in self.colunas_regressores if reg not in df_regressores_futuros.columns]
             if missing_regressors:
-                logger.error(f"Regressores futuros ausentes em df_regressores_futuros: {missing_regressors}")
+                logger.error(f"Regressores ausentes em df_regressores_futuros: {missing_regressors}")
                 return pd.DataFrame()
             
             future_df = pd.merge(future_df, df_regressores_futuros[['ds'] + self.colunas_regressores], on='ds', how='left')
             
             if future_df[self.colunas_regressores].isnull().any().any():
-                logger.warning("Valores NaN encontrados nos regressores do DataFrame futuro. Preenchendo com ffill e bfill.")
+                logger.warning("Valores NaN encontrados nos regressores. Preenchendo com ffill e bfill.")
                 for reg_col in self.colunas_regressores:
                     future_df[reg_col] = future_df[reg_col].fillna(method='ffill').fillna(method='bfill')
+                
                 if future_df[self.colunas_regressores].isnull().any().any():
-                    logger.error("Ainda existem NaNs nos regressores futuros após preenchimento. Não é possível prever.")
+                    logger.error("Ainda existem NaNs nos regressores após preenchimento.")
                     return pd.DataFrame()
 
         try:
             forecast_df = self.model.predict(future_df)
-            logger.info(f"Previsão futura gerada para {periodos} períodos.")
+            logger.info(f"Previsão Prophet gerada para {periodos} períodos com {len(self.colunas_regressores)} regressores.")
             return forecast_df
         except Exception as e:
             logger.error(f"Erro ao gerar previsão com Prophet: {e}")

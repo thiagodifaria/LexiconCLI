@@ -3,7 +3,7 @@ import os
 import subprocess
 import time
 
-APP_VERSION = "0.9.0" 
+APP_VERSION = "2.0.0" 
 WINDOW_TITLE = f"LexiconCLI v{APP_VERSION}"
 RELAUNCH_ENV_VAR = "LEXICONCLI_IN_NEW_WINDOW"
 

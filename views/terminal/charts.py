@@ -1,5 +1,6 @@
 import plotext as plt
 import pandas as pd
+import numpy as np
 from rich.text import Text
 from datetime import datetime
 from utils.logger import logger
@@ -61,6 +62,72 @@ def plotar_historico_preco_volume(df_historico: pd.DataFrame, simbolo: str):
         plt.theme('pro')
 
     return plt.build()
+
+def plotar_simulacao_monte_carlo(matriz_simulacoes: np.ndarray, simbolo: str):
+    """
+    Passo 3a: Criação da visualização gráfica para simulação Monte Carlo.
+    
+    Decisões técnicas:
+    1. Limitei a 50 trajetórias para evitar sobrecarregar o gráfico e manter legibilidade
+    2. Usei plotext para manter consistência com o resto da aplicação
+    3. Implementei diferentes cores para destacar quartis de resultados
+    4. Adicionei configurações de tema e grid para melhor visualização
+    """
+    if matriz_simulacoes is None or matriz_simulacoes.size == 0:
+        logger.warning(f"Matriz de simulações vazia ou None para {simbolo}")
+        return Text(f"Dados de simulação insuficientes para {simbolo}.", style="bold red")
+    
+    try:
+        plt.clear_figure()
+        plt.limit_size(True, True)
+        
+        dias_simulacao = matriz_simulacoes.shape[0] - 1
+        num_simulacoes_total = matriz_simulacoes.shape[1]
+        
+        max_simulacoes_plot = min(50, num_simulacoes_total)
+        step_simulacoes = max(1, num_simulacoes_total // max_simulacoes_plot)
+        indices_simulacoes = range(0, num_simulacoes_total, step_simulacoes)[:max_simulacoes_plot]
+        
+        x_axis = list(range(dias_simulacao + 1))
+        
+        cores_disponiveis = ["blue", "red", "green", "yellow", "magenta", "cyan"]
+        for i, idx_sim in enumerate(indices_simulacoes):
+            trajetoria = matriz_simulacoes[:, idx_sim]
+            cor = cores_disponiveis[i % len(cores_disponiveis)]
+            
+            if i < 10:
+                plt.plot(x_axis, trajetoria.tolist(), marker="braille", color=cor)
+            else:
+                plt.plot(x_axis, trajetoria.tolist(), color=cor)
+        
+        precos_finais = matriz_simulacoes[-1, :]
+        idx_mediana = np.argsort(precos_finais)[len(precos_finais)//2]
+        trajetoria_mediana = matriz_simulacoes[:, idx_mediana]
+        plt.plot(x_axis, trajetoria_mediana.tolist(), marker="braille", color="white", label="Mediana")
+        
+        if dias_simulacao <= 30:
+            tick_step = 5
+        elif dias_simulacao <= 90:
+            tick_step = 15
+        else:
+            tick_step = 30
+            
+        x_ticks_pos = list(range(0, dias_simulacao + 1, tick_step))
+        x_ticks_labels = [f"Dia {x}" for x in x_ticks_pos]
+        
+        plt.xticks(x_ticks_pos, x_ticks_labels)
+        plt.title(f"Simulação Monte Carlo - {simbolo} ({max_simulacoes_plot}/{num_simulacoes_total} trajetórias)")
+        plt.xlabel("Dias de Simulação")
+        plt.ylabel("Preço Simulado")
+        plt.grid(True, True)
+        plt.theme('pro')
+        
+        logger.info(f"Gráfico Monte Carlo gerado para {simbolo}: {max_simulacoes_plot} trajetórias de {num_simulacoes_total}")
+        return plt.build()
+        
+    except Exception as e:
+        logger.error(f"Erro ao plotar simulação Monte Carlo para {simbolo}: {str(e)}", exc_info=True)
+        return Text(f"Erro ao gerar gráfico de simulação para {simbolo}: {str(e)}", style="bold red")
 
 def plotar_previsoes_lstm(df_comparacao: pd.DataFrame, simbolo: str):
     if df_comparacao is None or df_comparacao.empty or 'Data' not in df_comparacao.columns:

@@ -4,7 +4,8 @@ from rich.panel import Panel
 from rich.live import Live
 from rich.text import Text
 from rich.table import Table
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Confirm, Prompt, IntPrompt
+from rich.markup import escape
 import time
 import pandas as pd
 from datetime import datetime
@@ -21,24 +22,31 @@ from views.terminal.tables import (
     criar_tabela_watchlist,
     criar_tabela_resultados_busca_simbolos,
     criar_tabela_alertas_configurados,
-    criar_tabela_preferencias_visualizacao
+    criar_tabela_preferencias_visualizacao,
+    criar_tabela_relatorio_financeiro,
+    criar_tabela_backtest,
+    criar_tabela_estatisticas_monte_carlo,
+    criar_tabela_previsoes_lstm_classificacao,
+    criar_tabela_metricas_classificacao
 )
 from views.terminal.charts import (
     plotar_historico_preco_volume, 
     plotar_previsoes_lstm,
-    plotar_previsoes_prophet
+    plotar_previsoes_prophet,
+    plotar_simulacao_monte_carlo
 )
 from config.settings import DEFAULT_ASSETS_MONITOR, DEFAULT_INDICES_MONITOR, DEFAULT_HISTORICAL_PERIOD, DEFAULT_INDICATORS_VIEW, DEFAULT_EXPORT_PATH
 from utils.logger import logger
 from utils.formatters import formatar_dataframe_para_csv, formatar_dados_para_txt_simples
-from models.data_model import PreferenciasVisualizacao # Supondo que esta dataclass exista
+from models.data_model import PreferenciasVisualizacao 
 
 class MainView:
-    def __init__(self, data_controller, analysis_controller=None, prediction_controller=None):
+    def __init__(self, data_controller, analysis_controller=None, prediction_controller=None, backtesting_controller=None):
         self.console = Console()
         self.data_controller = data_controller
         self.analysis_controller = analysis_controller
         self.prediction_controller = prediction_controller
+        self.backtesting_controller = backtesting_controller
         self.layout = self._criar_layout_base()
         self.user_assets_monitor = list(DEFAULT_ASSETS_MONITOR)
         self.user_indices_monitor = list(DEFAULT_INDICES_MONITOR)
@@ -46,13 +54,13 @@ class MainView:
         self.carregar_watchlist_inicial()
 
     def _carregar_preferencias_visualizacao(self) -> PreferenciasVisualizacao:
-        prefs_db = self.data_controller.carregar_preferencias_visualizacao_db() # Método a ser criado no DataController
+        prefs_db = self.data_controller.carregar_preferencias_visualizacao_db()
         if prefs_db:
             logger.info(f"Preferências de visualização carregadas do DB: {prefs_db}")
-            return PreferenciasVisualizacao(**prefs_db) # Assumindo que o retorno do DB é um dict compatível
+            return PreferenciasVisualizacao(**prefs_db)
         logger.info("Nenhuma preferência de visualização no DB, usando padrões.")
         return PreferenciasVisualizacao(
-            id_usuario=0, # ou algum identificador padrão
+            id_usuario=0,
             periodo_historico_padrao=DEFAULT_HISTORICAL_PERIOD,
             indicadores_tecnicos_padrao=list(DEFAULT_INDICATORS_VIEW)
         )
@@ -104,6 +112,145 @@ class MainView:
     def _atualizar_header_footer(self):
         self.layout["header"].update(Panel(Text("LexiconCLI - Terminal de Análise Financeira", justify="center", style="bold white on blue")))
         self.layout["footer"].update(Panel(Text(f"Atualizado em: {time.strftime('%H:%M:%S %d/%m/%Y')} - Pressione Ctrl+C para Menu", justify="center", style="dim")))
+
+    def exibir_simulacao_monte_carlo(self, simbolo: str, simulation_controller):
+        """
+        Passo 4: Orquestração completa do fluxo da simulação Monte Carlo.
+        
+        Decisões técnicas:
+        1. Seguir o padrão estabelecido: título → inputs → status → execução → resultados
+        2. Valores padrão sugeridos baseados em práticas da indústria (30 dias, 1000 simulações)
+        3. Validação robusta dos inputs do usuário
+        4. Feedback visual contínuo durante execução
+        5. Tratamento de erros com mensagens claras
+        6. Exibição dos resultados em múltiplos formatos (tabela + gráfico)
+        """
+        simbolo_safe = escape(simbolo)
+        
+        try:
+            self.console.clear()
+            self.console.print(Panel(
+                Text(f"Simulação de Monte Carlo para [bold cyan]{simbolo}[/bold cyan]", 
+                     justify="center", style="bold yellow"), 
+                title="Análise de Cenários Futuros"
+            ))
+            
+            self.console.print("")
+            self.console.print(Text(
+                "A Simulação de Monte Carlo utiliza o modelo de Movimento Browniano Geométrico "
+                "para gerar milhares de cenários possíveis de evolução do preço do ativo.",
+                style="dim"
+            ))
+            self.console.print("")
+            
+            dias_simulacao = IntPrompt.ask(
+                "Quantos dias deseja simular para o futuro?", 
+                default=30,
+                show_default=True
+            )
+            
+            if dias_simulacao <= 0 or dias_simulacao > 365:
+                self.console.print("[red]Número de dias deve estar entre 1 e 365. Usando valor padrão de 30 dias.[/red]")
+                dias_simulacao = 30
+            
+            num_simulacoes = IntPrompt.ask(
+                "Quantas simulações executar? (mais simulações = resultados mais precisos)", 
+                default=1000,
+                show_default=True
+            )
+            
+            if num_simulacoes <= 0 or num_simulacoes > 10000:
+                self.console.print("[red]Número de simulações deve estar entre 1 e 10.000. Usando valor padrão de 1000.[/red]")
+                num_simulacoes = 1000
+            elif num_simulacoes < 100:
+                self.console.print("[yellow]Aviso: Número baixo de simulações pode afetar a precisão dos resultados.[/yellow]")
+            
+            self.console.print(f"\n[green]Configuração da simulação:[/green]")
+            self.console.print(f"  • Ativo: [bold]{simbolo}[/bold]")
+            self.console.print(f"  • Dias a simular: [bold]{dias_simulacao}[/bold]")
+            self.console.print(f"  • Número de simulações: [bold]{num_simulacoes:,}[/bold]")
+            
+            if not Confirm.ask("\nDeseja prosseguir com a simulação?", default=True):
+                self.console.print("[yellow]Simulação cancelada pelo usuário.[/yellow]")
+                self.console.input("\nPressione Enter para continuar...")
+                return
+            
+            with self.console.status(
+                f"[bold green]Executando simulação Monte Carlo para {simbolo}...\n"
+                f"Processando {num_simulacoes:,} simulações de {dias_simulacao} dias...", 
+                spinner="earth"
+            ) as status:
+                
+                status.update("[bold green]Obtendo dados históricos...")
+                time.sleep(0.5)
+                
+                status.update("[bold green]Calculando parâmetros estatísticos...")
+                time.sleep(0.5)
+                
+                status.update(f"[bold green]Gerando {num_simulacoes:,} trajetórias de preços...")
+                
+                matriz_simulacoes, preco_inicial, metadados_simulacao = simulation_controller.executar_simulacao_monte_carlo(
+                    simbolo=simbolo,
+                    periodo_historico="2y",
+                    dias_simulacao=dias_simulacao,
+                    num_simulacoes=num_simulacoes
+                )
+            
+            if not metadados_simulacao.get('sucesso', False):
+                erro_msg = metadados_simulacao.get('erro', 'Erro desconhecido na simulação')
+                self.console.print(Panel(
+                    Text(f"Falha na simulação: {erro_msg}", style="bold red"),
+                    title="Erro na Simulação Monte Carlo"
+                ))
+                self.console.input("\nPressione Enter para continuar...")
+                return
+            
+            self.console.clear()
+            self.console.print(Panel(
+                Text(f"Simulação Monte Carlo Concluída - {simbolo}", 
+                     justify="center", style="bold green"),
+                subtitle=f"{num_simulacoes:,} simulações • {dias_simulacao} dias"
+            ))
+            
+            tabela_estatisticas = criar_tabela_estatisticas_monte_carlo(metadados_simulacao)
+            self.console.print(tabela_estatisticas)
+            
+            self.console.print("\n")
+            
+            self.console.print("[bold]Trajetórias de Preços Simuladas:[/bold]\n")
+            
+            grafico_simulacao = plotar_simulacao_monte_carlo(matriz_simulacoes, simbolo)
+            if isinstance(grafico_simulacao, str):
+                self.console.print(Text.from_ansi(grafico_simulacao))
+            elif isinstance(grafico_simulacao, Text):
+                self.console.print(grafico_simulacao)
+            else:
+                self.console.print(str(grafico_simulacao))
+            
+            self.console.print(f"\n[dim]• Gráfico mostra até 50 trajetórias representativas de {num_simulacoes:,} simulações totais[/dim]")
+            self.console.print("[dim]• Linha branca destaca a trajetória mediana[/dim]")
+            self.console.print("[dim]• Cada trajetória representa um cenário possível de evolução do preço[/dim]")
+            
+            if Confirm.ask("\nDeseja gerar um relatório detalhado da simulação?", default=False):
+                relatorio = simulation_controller.gerar_relatorio_simulacao(matriz_simulacoes, metadados_simulacao)
+                if 'erro' not in relatorio:
+                    self.console.print("\n[green]Relatório gerado com sucesso![/green]")
+                else:
+                    self.console.print(f"[red]Erro ao gerar relatório: {relatorio['erro']}[/red]")
+            
+            logger.info(f"Simulação Monte Carlo concluída para {simbolo}: "
+                       f"{num_simulacoes} simulações, {dias_simulacao} dias, "
+                       f"sucesso: {metadados_simulacao.get('sucesso', False)}")
+            
+        except KeyboardInterrupt:
+            self.console.print("\n[yellow]Simulação interrompida pelo usuário.[/yellow]")
+            logger.info(f"Simulação Monte Carlo para {simbolo} interrompida pelo usuário")
+        except Exception as e:
+            erro_msg = f"Erro inesperado durante simulação Monte Carlo: {str(e)}"
+            self.console.print(Panel(Text(erro_msg, style="bold red"), title="Erro Inesperado"))
+            logger.error(f"Erro inesperado na simulação Monte Carlo para {simbolo}: {str(e)}", exc_info=True)
+        
+        self.console.input("\nPressione Enter para continuar...")
 
     def exibir_dashboard_inicial(self):
         with Live(self.layout, console=self.console, refresh_per_second=0.5, screen=True, transient=True) as live:
@@ -166,13 +313,13 @@ class MainView:
             self.console.print(Panel(Text("Módulo de Análise Técnica não inicializado.", style="bold red"), title="Erro")); return
         
         periodo_calculo = self.preferencias_visualizacao.periodo_historico_padrao 
-        num_dias_aprox = 250 # default se conversão falhar
+        num_dias_aprox = 250
         if "y" in periodo_calculo: num_dias_aprox = int(periodo_calculo.replace("y","")) * 252
         elif "mo" in periodo_calculo: num_dias_aprox = int(periodo_calculo.replace("mo","")) * 21
         elif "d" in periodo_calculo: num_dias_aprox = int(periodo_calculo.replace("d",""))
 
         with self.console.status(f"[bold green]Calculando indicadores técnicos para {simbolo} (dados de {periodo_calculo})...", spinner="dots"):
-            dados_hist = self.data_controller.buscar_dados_historicos(simbolo, periodo=f"{num_dias_aprox + 60}d", intervalo="1d") # Pega um pouco mais para cálculo dos indicadores
+            dados_hist = self.data_controller.buscar_dados_historicos(simbolo, periodo=f"{num_dias_aprox + 60}d", intervalo="1d")
             if dados_hist.dataframe.empty or len(dados_hist.dataframe) < 60: 
                 self.console.print(Panel(Text(f"Dados históricos insuficientes para calcular indicadores para {simbolo}.", style="bold red"), title="Erro")); return
             
@@ -198,87 +345,236 @@ class MainView:
         self.console.input("\nPressione Enter para continuar...")
 
     def exibir_previsao_lstm_ativo(self, simbolo: str):
-        if not self.prediction_controller or not self.analysis_controller :
-            self.console.print(Panel(Text("Módulo de Previsão ou Análise não inicializado.", style="bold red"), title="Erro")); return
-        
-        with self.console.status(f"[bold green]Preparando dados e treinando modelo LSTM para {simbolo}...", spinner="earth") as status:
-            status.update(f"[bold green]Buscando dados históricos (3 anos) para {simbolo}...")
-            dados_hist_completos = self.data_controller.buscar_dados_historicos(simbolo, periodo="3y", intervalo="1d")
-            
-            if dados_hist_completos.dataframe.empty or len(dados_hist_completos.dataframe) < (self.prediction_controller.model_config.get('lookback_period', 60) * 2):
-                self.console.print(Panel(Text(f"Dados históricos insuficientes (mín. {self.prediction_controller.model_config.get('lookback_period', 60) * 2} pontos) para treinar modelo LSTM para {simbolo}.", style="bold red"), title="Erro")); return
-            
-            status.update(f"[bold green]Calculando features (indicadores técnicos) para {simbolo}...")
-            df_com_indicadores = self.analysis_controller.calcular_todos_indicadores_principais(dados_hist_completos.dataframe.copy())
-            
-            if df_com_indicadores.empty:
-                 self.console.print(Panel(Text(f"Falha ao calcular features para LSTM para {simbolo}.", style="bold red"), title="Erro")); return
-
-            status.update(f"[bold green]Treinando modelo LSTM para {simbolo}... Isso pode levar alguns minutos.")
-            modelo, scaler_target, df_comparacao, metricas = self.prediction_controller.treinar_avaliar_modelo_lstm(df_com_indicadores, coluna_target='Close')
-        
-        self.console.clear()
-        if modelo and not df_comparacao.empty:
-            self.console.print(Panel(Text(f"Resultados da Previsão LSTM - {simbolo}", justify="center", style="bold yellow")))
-            self.console.print("\nMétricas de Avaliação:"); 
-            self.console.print(f"  MAE: {metricas.get('mae', 'N/A'):.4f}" if isinstance(metricas.get('mae'), (int, float)) else f"  MAE: {metricas.get('mae', 'N/A')}")
-            self.console.print(f"  RMSE: {metricas.get('rmse', 'N/A'):.4f}" if isinstance(metricas.get('rmse'), (int, float)) else f"  RMSE: {metricas.get('rmse', 'N/A')}")
-            taxa_acerto = metricas.get('taxa_acerto_direcional')
-            self.console.print(f"  Taxa de Acerto Direcional: {taxa_acerto * 100:.2f}%" if isinstance(taxa_acerto, (int, float)) else f"  Taxa de Acerto Direcional: {taxa_acerto}")
-
-            self.console.print("\nÚltimas Previsões vs Real (LSTM):"); 
-            self.console.print(criar_tabela_previsoes_lstm(df_comparacao.tail(15)))
-            
-            grafico_lstm_str = plotar_previsoes_lstm(df_comparacao.tail(60), simbolo)
-            if isinstance(grafico_lstm_str, str):
-                self.console.print(Text.from_ansi(grafico_lstm_str))
-            elif isinstance(grafico_lstm_str, Text):
-                self.console.print(grafico_lstm_str)
-            else:
-                self.console.print(str(grafico_lstm_str))
-        else:
-            self.console.print(Panel(Text(f"Falha ao treinar ou avaliar o modelo LSTM para {simbolo}.", style="bold red"), title="Erro na Previsão LSTM"))
-        self.console.input("\nPressione Enter para continuar...")
-
-    def exibir_previsao_prophet_ativo(self, simbolo: str):
         if not self.prediction_controller or not self.analysis_controller:
             self.console.print(Panel(Text("Módulo de Previsão ou Análise não inicializado.", style="bold red"), title="Erro")); return
 
-        with self.console.status(f"[bold green]Preparando dados e treinando modelo Prophet para {simbolo}...", spinner="dots") as status:
-            status.update(f"[bold green]Buscando dados históricos (3 anos) para {simbolo}...")
-            dados_hist_completos = self.data_controller.buscar_dados_historicos(simbolo, periodo="3y", intervalo="1d")
+        modelo_carregado = self.prediction_controller.carregar_modelo_lstm(simbolo)
+        usar_modelo_salvo = False
 
-            if dados_hist_completos.dataframe.empty:
-                self.console.print(Panel(Text(f"Dados históricos insuficientes para treinar modelo Prophet para {simbolo}.", style="bold red"), title="Erro")); return
-            
-            df_para_prophet = dados_hist_completos.dataframe.copy()
-            
-            status.update(f"[bold green]Treinando modelo Prophet para {simbolo}... Isso pode ser rápido.")
-            modelo_prophet, df_previsao_prophet, df_historico_usado_prophet = self.prediction_controller.treinar_avaliar_modelo_prophet(
-                df_dados_completos=df_para_prophet.reset_index(), 
-                coluna_data_prophet='Date',
-                coluna_target_prophet='Close',
-                periodos_previsao=30 
-            )
-        
-        self.console.clear()
-        if modelo_prophet and not df_previsao_prophet.empty:
-            self.console.print(Panel(Text(f"Resultados da Previsão Prophet - {simbolo}", justify="center", style="bold magenta")))
-            
-            self.console.print("\nPrevisões Futuras (Prophet):"); 
-            self.console.print(criar_tabela_previsoes_prophet(df_previsao_prophet.tail(30))) 
+        if modelo_carregado:
+            self.console.print(f"[green]✓ Modelo LSTM de classificação treinado para [bold]{simbolo}[/bold] encontrado![/green]")
+            usar_modelo_salvo = Confirm.ask("Deseja usar este modelo para fazer uma nova previsão?", default=True)
 
-            grafico_prophet_str = plotar_previsoes_prophet(df_historico_usado_prophet, df_previsao_prophet, simbolo)
-            if isinstance(grafico_prophet_str, str):
-                self.console.print(Text.from_ansi(grafico_prophet_str))
-            elif isinstance(grafico_prophet_str, Text):
-                self.console.print(grafico_prophet_str)
+        if usar_modelo_salvo:
+            self.console.print("[cyan]Usando modelo de classificação salvo para gerar previsão...[/cyan]")
+            with self.console.status(f"[bold green]Buscando dados recentes para {simbolo}...", spinner="dots"):
+                dados_recentes = self.data_controller.buscar_dados_historicos(simbolo, periodo="1y", intervalo="1d")
+                if dados_recentes.dataframe.empty or len(dados_recentes.dataframe) < self.prediction_controller.model_config.get('lookback_period', 60):
+                    self.console.print(Panel(Text(f"Dados recentes insuficientes para fazer previsão para {simbolo}.", style="bold red"), title="Erro")); return
+                
+                df_com_indicadores = self.analysis_controller.calcular_todos_indicadores_principais(dados_recentes.dataframe.copy())
+
+            predicao_resultado = self.prediction_controller.prever_proximos_passos_lstm(df_com_indicadores)
+            
+            self.console.clear()
+            self.console.print(Panel(Text(f"Previsão LSTM - Classificação de Direção - {simbolo}", justify="center", style="bold yellow")))
+            
+            if predicao_resultado is not None:
+                cotacao_atual = dados_recentes.dataframe['close'].iloc[-1]
+                classe_predita = predicao_resultado['classe_predita']
+                probabilidades = predicao_resultado['probabilidades']
+                
+                self.console.print(f"\nÚltimo preço de fechamento: [bold cyan]${cotacao_atual:.2f}[/bold cyan]")
+                self.console.print(f"\n[bold]Previsão de Direção para o Próximo Dia:[/bold]")
+                
+                if classe_predita == "ALTA":
+                    cor_classe = "bold green"
+                elif classe_predita == "BAIXA":
+                    cor_classe = "bold red" 
+                else:
+                    cor_classe = "bold yellow"
+                
+                self.console.print(f"Direção Prevista: [{cor_classe}]{classe_predita}[/{cor_classe}]")
+                
+                self.console.print(f"\n[bold]Probabilidades por Classe:[/bold]")
+                self.console.print(f"  BAIXA:  {probabilidades['BAIXA']:.1%}")
+                self.console.print(f"  NEUTRO: {probabilidades['NEUTRO']:.1%}")
+                self.console.print(f"  ALTA:   {probabilidades['ALTA']:.1%}")
+                
+                prob_maxima = max(probabilidades.values())
+                if prob_maxima > 0.6:
+                    confianca = "[bold green]Alta Confiança[/bold green]"
+                elif prob_maxima > 0.4:
+                    confianca = "[bold yellow]Confiança Moderada[/bold yellow]"
+                else:
+                    confianca = "[bold red]Baixa Confiança[/bold red]"
+                
+                self.console.print(f"\nNível de Confiança: {confianca} ({prob_maxima:.1%})")
+                
+                self.console.print(f"\n[dim]Interpretação: O modelo prevê movimento {classe_predita} com {prob_maxima:.1%} de confiança.[/dim]")
+                if prob_maxima < 0.5:
+                    self.console.print("[dim]Atenção: Confiança baixa pode indicar movimento lateral ou incerteza do mercado.[/dim]")
+                    
             else:
-                self.console.print(str(grafico_prophet_str))
+                self.console.print("[red]Não foi possível gerar uma previsão com o modelo salvo.[/red]")
+
         else:
-            self.console.print(Panel(Text(f"Falha ao treinar ou gerar previsões com o modelo Prophet para {simbolo}.", style="bold red"), title="Erro na Previsão Prophet"))
+            if modelo_carregado:
+                self.console.print("[yellow]Ok, vamos treinar um novo modelo de classificação do zero.[/yellow]\n")
+            
+            with self.console.status(f"[bold green]Preparando dados e treinando modelo LSTM de classificação para {simbolo}...", spinner="earth") as status:
+                status.update(f"[bold green]Buscando dados históricos (3 anos) para {simbolo}...")
+                dados_hist_completos = self.data_controller.buscar_dados_historicos(simbolo, periodo="3y", intervalo="1d")
+                
+                if dados_hist_completos.dataframe.empty or len(dados_hist_completos.dataframe) < (self.prediction_controller.model_config.get('lookback_period', 60) * 2):
+                    self.console.print(Panel(Text(f"Dados históricos insuficientes para treinar modelo LSTM para {simbolo}.", style="bold red"), title="Erro")); return
+                
+                status.update(f"[bold green]Calculando features (indicadores técnicos) para {simbolo}...")
+                df_com_indicadores = self.analysis_controller.calcular_todos_indicadores_principais(dados_hist_completos.dataframe.copy())
+                
+                if df_com_indicadores.empty:
+                    self.console.print(Panel(Text(f"Falha ao calcular features para LSTM para {simbolo}.", style="bold red"), title="Erro")); return
+
+                status.update(f"[bold green]Treinando modelo LSTM de CLASSIFICAÇÃO para {simbolo}... Isso pode levar alguns minutos.")
+                modelo, _, df_comparacao, metricas = self.prediction_controller.treinar_avaliar_modelo_lstm_bayesian(
+                    df_com_indicadores, 
+                    coluna_target='close', 
+                    simbolo=simbolo
+                )
+            
+            self.console.clear()
+            if modelo and not df_comparacao.empty:
+                self.console.print(Panel(Text(f"Resultados LSTM - Classificação de Direção - {simbolo}", justify="center", style="bold yellow")))
+                
+                self.console.print("\n[bold]Métricas de Avaliação (Classificação):[/bold]")
+                tabela_metricas = criar_tabela_metricas_classificacao(metricas)
+                self.console.print(tabela_metricas)
+
+                self.console.print("\n[bold]Últimas Previsões vs Real (Classificação):[/bold]"); 
+                tabela_previsoes = criar_tabela_previsoes_lstm_classificacao(df_comparacao.tail(15))
+                self.console.print(tabela_previsoes)
+                
+                accuracy = metricas.get('accuracy', 0)
+                balanced_accuracy = metricas.get('balanced_accuracy', 0)
+                
+                self.console.print(f"\n[bold]Resumo de Performance:[/bold]")
+                if accuracy > 0.6:
+                    performance_cor = "green"
+                    performance_status = "EXCELENTE"
+                elif accuracy > 0.45:
+                    performance_cor = "yellow" 
+                    performance_status = "MODERADA"
+                else:
+                    performance_cor = "red"
+                    performance_status = "BAIXA"
+                
+                self.console.print(f"Performance: [{performance_cor}]{performance_status}[/{performance_cor}] - Acurácia Geral: [{performance_cor}]{accuracy:.1%}[/{performance_cor}]")
+                self.console.print(f"Acurácia Balanceada: {balanced_accuracy:.1%}")
+                
+                if accuracy > 0.5:
+                    self.console.print(f"\n[green]Modelo apresenta performance superior ao acaso (>50%)[/green]")
+                else:
+                    self.console.print(f"\n[red]Modelo com performance próxima ao acaso - considere mais dados ou features[/red]")
+                    
+            else:
+                self.console.print(Panel(Text(f"Falha ao treinar ou avaliar o modelo LSTM de classificação para {simbolo}.", style="bold red"), title="Erro na Previsão LSTM"))
+        
         self.console.input("\nPressione Enter para continuar...")
 
+    def exibir_previsao_prophet_ativo(self, simbolo: str):
+        if not self.prediction_controller:
+            self.console.print(Panel(Text("Módulo de Previsão não inicializado.", style="bold red"), title="Erro")); return
+
+        modelo_carregado = self.prediction_controller.carregar_modelo_prophet(simbolo)
+        usar_modelo_salvo = False
+
+        if modelo_carregado:
+            self.console.print(f"[green]✓ Modelo Prophet treinado para [bold]{simbolo}[/bold] encontrado![/green]")
+            usar_modelo_salvo = Confirm.ask("Deseja usar este modelo para fazer uma nova previsão?", default=True)
+
+        if usar_modelo_salvo:
+            self.console.print("[cyan]Usando modelo Prophet salvo para gerar previsão...[/cyan]")
+            with self.console.status(f"[bold green]Gerando previsões futuras para {simbolo}...", spinner="dots"):
+                periodos_previsao = 30
+                forecast_df = self.prediction_controller.modelo_prophet_instancia.prever_futuro(
+                    periodos=periodos_previsao,
+                    frequencia='B'
+                )
+            
+            self.console.clear()
+            if not forecast_df.empty:
+                self.console.print(Panel(Text(f"Previsões Futuras com Modelo Prophet Salvo - {simbolo}", justify="center", style="bold magenta")))
+                self.console.print(criar_tabela_previsoes_prophet(forecast_df.tail(periodos_previsao)))
+                
+                self.console.print("\n[yellow]Gráfico de previsão com modelo salvo ainda não implementado.[/yellow]")
+            else:
+                self.console.print(Panel(Text(f"Falha ao gerar previsões com o modelo Prophet salvo para {simbolo}.", style="bold red"), title="Erro na Previsão Prophet"))
+
+        else:
+            if modelo_carregado:
+                self.console.print("[yellow]Ok, vamos treinar um novo modelo Prophet do zero.[/yellow]\n")
+
+            with self.console.status(f"[bold green]Preparando dados e treinando modelo Prophet para {simbolo}...", spinner="dots") as status:
+                status.update(f"[bold green]Buscando dados históricos (3 anos) para {simbolo}...")
+                dados_hist_completos = self.data_controller.buscar_dados_historicos(simbolo, periodo="3y", intervalo="1d")
+
+                if dados_hist_completos.dataframe.empty:
+                    self.console.print(Panel(Text(f"Dados históricos insuficientes para treinar modelo Prophet para {simbolo}.", style="bold red"), title="Erro")); return
+                
+                df_para_prophet = dados_hist_completos.dataframe.copy()
+                
+                status.update(f"[bold green]Treinando modelo Prophet para {simbolo}... Isso pode ser rápido.")
+                modelo_prophet, df_previsao_prophet, df_historico_usado_prophet = self.prediction_controller.treinar_avaliar_modelo_prophet(
+                    df_dados_completos=df_para_prophet.reset_index(), 
+                    simbolo=simbolo,
+                    coluna_data_prophet='date',
+                    coluna_target_prophet='close',
+                    periodos_previsao=30 
+                )
+            
+            self.console.clear()
+            if modelo_prophet and not df_previsao_prophet.empty:
+                self.console.print(Panel(Text(f"Resultados da Previsão Prophet - {simbolo}", justify="center", style="bold magenta")))
+                
+                self.console.print("\nPrevisões Futuras (Prophet):"); 
+                self.console.print(criar_tabela_previsoes_prophet(df_previsao_prophet.tail(30))) 
+
+                grafico_prophet_str = plotar_previsoes_prophet(df_historico_usado_prophet, df_previsao_prophet, simbolo)
+                if isinstance(grafico_prophet_str, str): self.console.print(Text.from_ansi(grafico_prophet_str))
+                else: self.console.print(str(grafico_prophet_str))
+            else:
+                self.console.print(Panel(Text(f"Falha ao treinar ou gerar previsões com o modelo Prophet para {simbolo}.", style="bold red"), title="Erro na Previsão Prophet"))
+
+        self.console.input("\nPressione Enter para continuar...")
+        
+    def exibir_analise_fundamentalista(self, simbolo: str):
+        """Orquestra a exibição dos relatórios de análise fundamentalista."""
+        self.console.clear()
+        self.console.print(Panel(Text(f"Análise Fundamentalista para [bold cyan]{simbolo}[/bold cyan]", justify="center"), expand=False))
+
+        with self.console.status("[bold green]Buscando dados fundamentalistas...", spinner="dots"):
+            dados_bp = self.data_controller.buscar_balanco_patrimonial(simbolo)
+            tabela_bp = criar_tabela_relatorio_financeiro(f"Balanço Patrimonial Anual ({simbolo})", dados_bp)
+            
+            dados_dre = self.data_controller.buscar_demonstrativo_resultados(simbolo)
+            tabela_dre = criar_tabela_relatorio_financeiro(f"Demonstração de Resultados Anual ({simbolo})", dados_dre)
+
+            dados_fc = self.data_controller.buscar_fluxo_caixa(simbolo)
+            tabela_fc = criar_tabela_relatorio_financeiro(f"Fluxo de Caixa Anual ({simbolo})", dados_fc)
+
+        self.console.print(tabela_bp)
+        self.console.print(tabela_dre)
+        self.console.print(tabela_fc)
+        
+        self.console.input("\n[bold]Pressione Enter para voltar ao menu anterior[/bold]")
+        
+    def exibir_backtest_ativo(self, simbolo: str):
+        """Orquestra a execução e exibição do resultado de um backtest."""
+        self.console.clear()
+        self.console.print(Panel(Text(f"Backtesting para [bold cyan]{simbolo}[/bold cyan]", justify="center"), expand=False))
+        
+        if not self.backtesting_controller:
+            self.console.print(Panel(Text("Módulo de Backtesting não inicializado.", style="bold red"), title="Erro"))
+            self.console.input("\n[bold]Pressione Enter para voltar ao menu anterior[/bold]")
+            return
+
+        with self.console.status("[bold green]Executando simulação... (Isso pode levar um momento)", spinner="earth"):
+            stats, caminho_plot = self.backtesting_controller.executar_backtest_sma_cross(simbolo)
+
+        tabela_resultados = criar_tabela_backtest(stats)
+        self.console.print(tabela_resultados)
+        
+        self.console.input("\n[bold]Pressione Enter para voltar ao menu anterior[/bold]")
 
     def exibir_indicadores_macro_detalhados(self):
         self.console.clear()

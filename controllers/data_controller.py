@@ -65,6 +65,9 @@ class DataController:
         logger.warning(f"Não foi possível obter cotação detalhada para {simbolo} via fallback."); return CotacaoAtivo(simbolo=simbolo)
 
     def buscar_dados_historicos(self, simbolo: str, periodo="1y", intervalo="1d", data_inicio:Optional[str] = None, data_fim:Optional[str] = None) -> DadosHistoricos:
+        """
+        🔧 BUG FIX: Busca dados históricos com normalização robusta de colunas
+        """
         df_historico = pd.DataFrame()
         
         if not data_inicio or not data_fim:
@@ -106,15 +109,45 @@ class DataController:
                  df_historico = df_historico_av[(df_historico_av.index >= pd.to_datetime(data_inicio_str)) & (df_historico_av.index <= pd.to_datetime(data_fim_str))]
 
         cols_necessarias = ['Open', 'High', 'Low', 'Close', 'Volume']
+        
         if not df_historico.empty:
-            df_historico.columns = [col.capitalize() for col in df_historico.columns]
-            for col_lower in ['open', 'high', 'low', 'close', 'volume']: 
-                if col_lower in df_historico.columns and col_lower.capitalize() not in df_historico.columns:
-                    df_historico.rename(columns={col_lower: col_lower.capitalize()}, inplace=True)
+            logger.debug(f"Colunas originais dos dados históricos de {simbolo}: {list(df_historico.columns)}")
+            
+            column_mapping = {}
+            cols_esperadas_lower = ['open', 'high', 'low', 'close', 'volume']
+            
+            for col in df_historico.columns:
+                col_lower = str(col).lower()
+                if col_lower in cols_esperadas_lower:
+                    column_mapping[col] = col_lower.capitalize()
+            
+            if column_mapping:
+                df_historico = df_historico.rename(columns=column_mapping)
+                logger.debug(f"Colunas após normalização: {list(df_historico.columns)}")
+            
             for col in cols_necessarias:
-                if col not in df_historico.columns: df_historico[col] = pd.NA
-            df_historico = df_historico[cols_necessarias + [col for col in df_historico.columns if col not in cols_necessarias]]
-        else: df_historico = pd.DataFrame(columns=cols_necessarias)
+                if col not in df_historico.columns:
+                    if col == 'Volume':
+                        df_historico[col] = 0
+                        logger.warning(f"Coluna {col} não encontrada para {simbolo}, preenchendo com zeros")
+                    else:
+                        logger.error(f"Coluna crítica {col} não encontrada para {simbolo}")
+                        df_historico[col] = pd.NA
+            
+            outras_colunas = [col for col in df_historico.columns if col not in cols_necessarias]
+            df_historico = df_historico[cols_necessarias + outras_colunas]
+            
+            for col in ['Open', 'High', 'Low', 'Close']:
+                if col in df_historico.columns:
+                    df_historico[col] = pd.to_numeric(df_historico[col], errors='coerce')
+            
+            if 'Volume' in df_historico.columns:
+                df_historico['Volume'] = pd.to_numeric(df_historico['Volume'], errors='coerce').fillna(0)
+        
+        else: 
+            df_historico = pd.DataFrame(columns=cols_necessarias)
+            logger.warning(f"Não foi possível obter dados históricos para {simbolo}")
+        
         return DadosHistoricos(simbolo=simbolo, dataframe=df_historico.sort_index())
 
     def buscar_indicadores_macro_bcb(self) -> Dict[str, IndicadorMacroeconomico]:
@@ -170,6 +203,21 @@ class DataController:
 
     def remove_from_watchlist(self, simbolo: str) -> bool:
         return remover_item_watchlist_db(simbolo)
+    
+    def buscar_balanco_patrimonial(self, simbolo: str) -> Optional[Dict]:
+        """Busca os dados do balanço patrimonial anual."""
+        logger.info(f"DataController solicitando balanço patrimonial para {simbolo}.")
+        return self.provider.obter_balanco_patrimonial_anual(simbolo)
+
+    def buscar_demonstrativo_resultados(self, simbolo: str) -> Optional[Dict]:
+        """Busca os dados da demonstração de resultados anual."""
+        logger.info(f"DataController solicitando demonstrativo de resultados para {simbolo}.")
+        return self.provider.obter_dre_anual(simbolo)
+
+    def buscar_fluxo_caixa(self, simbolo: str) -> Optional[Dict]:
+        """Busca os dados do fluxo de caixa anual."""
+        logger.info(f"DataController solicitando fluxo de caixa para {simbolo}.")
+        return self.provider.obter_fluxo_caixa_anual(simbolo)
 
     def pesquisar_simbolos(self, termo_busca: str) -> List[Dict[str, str]]:
         resultados = self.provider.buscar_simbolos_finnhub(termo_busca)

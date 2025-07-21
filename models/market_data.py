@@ -175,6 +175,87 @@ class MarketDataProvider:
                 simbolo_limpo = simbolo_original[:-len(sufixo)]
                 return pais, simbolo_limpo, "stock"
         return INVESTPY_COUNTRY_MAP.get("", "united states"), simbolo_original, "stock"
+    
+    def obter_balanco_patrimonial_anual(self, simbolo: str) -> Optional[Dict]:
+        """Obtém o balanço patrimonial anual (balance sheet) de uma empresa via Finnhub."""
+        if not self.finnhub_client:
+            logger.warning("Chave da API Finnhub não configurada.")
+            return None
+
+        params = {"simbolo": simbolo, "freq": "annual", "statement": "bs"}
+        cache_key_suffix = f"finnhub_financials_bs_{simbolo}"
+        dados_cache = self.cache_manager.get_cache("finnhub_financials", cache_key_suffix, params=params)
+        if dados_cache:
+            return dados_cache
+
+        try:
+            logger.info(f"Buscando balanço patrimonial para {simbolo} na Finnhub (sem cache).")
+            balance_sheet = self.finnhub_client.financials_reported(symbol=simbolo, freq='annual', statement='bs')
+            
+            if not balance_sheet or 'data' not in balance_sheet or not balance_sheet['data']:
+                logger.warning(f"Finnhub retornou dados de balanço patrimonial vazios para {simbolo}.")
+                self.cache_manager.set_cache("finnhub_financials", cache_key_suffix, {}, CACHE_EXPIRATION_FINNHUB_QUOTE, params=params)
+                return None
+
+            self.cache_manager.set_cache("finnhub_financials", cache_key_suffix, balance_sheet, CACHE_EXPIRATION_YFINANCE_HISTORY, params=params)
+            return balance_sheet
+        except Exception as e:
+            logger.error(f"Erro ao obter balanço patrimonial da Finnhub para {simbolo}: {e}")
+            return None
+
+    def obter_dre_anual(self, simbolo: str) -> Optional[Dict]:
+        """Obtém a demonstração de resultados anual (income statement) de uma empresa via Finnhub."""
+        if not self.finnhub_client:
+            logger.warning("Chave da API Finnhub não configurada.")
+            return None
+
+        params = {"simbolo": simbolo, "freq": "annual", "statement": "ic"}
+        cache_key_suffix = f"finnhub_financials_ic_{simbolo}"
+        dados_cache = self.cache_manager.get_cache("finnhub_financials", cache_key_suffix, params=params)
+        if dados_cache:
+            return dados_cache
+
+        try:
+            logger.info(f"Buscando DRE para {simbolo} na Finnhub (sem cache).")
+            income_statement = self.finnhub_client.financials_reported(symbol=simbolo, freq='annual', statement='ic')
+
+            if not income_statement or 'data' not in income_statement or not income_statement['data']:
+                logger.warning(f"Finnhub retornou dados de DRE vazios para {simbolo}.")
+                self.cache_manager.set_cache("finnhub_financials", cache_key_suffix, {}, CACHE_EXPIRATION_FINNHUB_QUOTE, params=params)
+                return None
+            
+            self.cache_manager.set_cache("finnhub_financials", cache_key_suffix, income_statement, CACHE_EXPIRATION_YFINANCE_HISTORY, params=params)
+            return income_statement
+        except Exception as e:
+            logger.error(f"Erro ao obter DRE da Finnhub para {simbolo}: {e}")
+            return None
+
+    def obter_fluxo_caixa_anual(self, simbolo: str) -> Optional[Dict]:
+        """Obtém o fluxo de caixa anual (cash flow) de uma empresa via Finnhub."""
+        if not self.finnhub_client:
+            logger.warning("Chave da API Finnhub não configurada.")
+            return None
+
+        params = {"simbolo": simbolo, "freq": "annual", "statement": "cf"}
+        cache_key_suffix = f"finnhub_financials_cf_{simbolo}"
+        dados_cache = self.cache_manager.get_cache("finnhub_financials", cache_key_suffix, params=params)
+        if dados_cache:
+            return dados_cache
+
+        try:
+            logger.info(f"Buscando fluxo de caixa para {simbolo} na Finnhub (sem cache).")
+            cash_flow = self.finnhub_client.financials_reported(symbol=simbolo, freq='annual', statement='cf')
+            
+            if not cash_flow or 'data' not in cash_flow or not cash_flow['data']:
+                logger.warning(f"Finnhub retornou dados de fluxo de caixa vazios para {simbolo}.")
+                self.cache_manager.set_cache("finnhub_financials", cache_key_suffix, {}, CACHE_EXPIRATION_FINNHUB_QUOTE, params=params)
+                return None
+            
+            self.cache_manager.set_cache("finnhub_financials", cache_key_suffix, cash_flow, CACHE_EXPIRATION_YFINANCE_HISTORY, params=params)
+            return cash_flow
+        except Exception as e:
+            logger.error(f"Erro ao obter fluxo de caixa da Finnhub para {simbolo}: {e}")
+            return None
 
     def obter_cotacao_finnhub(self, simbolo: str):
         if not self.finnhub_client:

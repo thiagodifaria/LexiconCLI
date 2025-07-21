@@ -1,45 +1,158 @@
 # LexiconCLI - Sistema de Análise Financeira
 
-LexiconCLI é um sistema de análise financeira abrangente e interativo, meticulosamente desenvolvido em Python para operar diretamente no ambiente de terminal. Este projeto foi concebido para capacitar traders, investidores e entusiastas do mercado financeiro com ferramentas poderosas para monitoramento de mercados em tempo real, execução de análises técnicas aprofundadas e obtenção de previsões de séries temporais baseadas em modelos de Machine Learning consagrados, como LSTM e Prophet. A arquitetura do LexiconCLI foi cuidadosamente planejada e implementada seguindo o padrão Model-View-Controller (MVC), garantindo uma estrutura de código organizada, modular e de fácil manutenção, o que se reflete na clara separação de responsabilidades entre os componentes de modelo, visão e controle. O sistema se destaca pela sua capacidade de integrar e processar dados de uma vasta gama de APIs financeiras, pela robustez de seu mecanismo de cache, pela sofisticação de sua interface de usuário no terminal construída com a biblioteca Rich, e pela inclusão de um sistema de alertas configurável que opera em background para notificações proativas.
+LexiconCLI é um sistema de análise financeira interativo e de última geração, meticulosamente desenvolvido em Python para operar diretamente no ambiente de terminal. Este projeto foi concebido para capacitar traders, investidores, analistas quantitativos e entusiastas do mercado financeiro com ferramentas avançadas para monitoramento de mercados, previsões probabilísticas e quantificação de incerteza. A arquitetura do LexiconCLI implementa técnicas state-of-the-art em Deep Learning Financeiro, incluindo modelos como Bayesian LSTM, Prophet, além de técnicas como Monte Carlo Dropout e sistemas adaptativos de otimização. A estrutura segue rigorosamente o padrão Model-View-Controller (MVC), garantindo modularidade, escalabilidade, manutenibilidade empresarial e uma clara separação de responsabilidades. O sistema se destaca pela sua capacidade de integrar e processar dados de uma vasta gama de APIs financeiras, pela robustez de seu mecanismo de cache para otimização de performance, pela sofisticação de sua interface de usuário construída com a biblioteca Rich e pela inclusão de um sistema de alertas configurável que opera em background para notificações proativas.
+
+## 🚀 Executável Disponível
+
+📦 **Download Direto**: Executável pré-compilado disponível na seção [Releases](https://github.com/thiagodifaria/LexiconCLI/releases) - Sem necessidade de instalação do Python!
 
 ## 🎯 Funcionalidades
 
 - ✅ **Monitoramento de mercado**: Dashboard interativo com ações e índices globais
 - ✅ **Watchlist personalizada**: Acompanhamento de ativos favoritos do usuário
-- ✅ **Indicadores macroeconômicos**: Visualização de dados econômicos chave
-- ✅ **Análise técnica completa**: Ampla gama de indicadores técnicos
+- ✅ **Indicadores macroeconômicos**: Visualização de dados econômicos chave (BCB, FRED, Nasdaq)
+- ✅ **Análise técnica completa**: Ampla gama de indicadores técnicos avançados
   - **Tendência**: SMA/EMA (9, 21, 50, 200 dias), MACD, Bandas de Bollinger, ADX
-  - **Momentum**: RSI, Oscilador Estocástico
-  - **Volume**: OBV (On-Balance Volume)
-  - **Volatilidade**: ATR, Desvio Padrão dos Retornos
-- ✅ **Modelos de previsão**: LSTM e Prophet para análise de séries temporais
-- ✅ **Múltiplas fontes de dados**: Integração com APIs financeiras diversas
+  - **Momentum**: RSI, Oscilador Estocástico, ROC, Williams %R
+  - **Volume**: OBV (On-Balance Volume), Volume SMA
+  - **Volatilidade**: ATR, Desvio Padrão dos Retornos, Volatilidade Rolling
+- ✅ **Modelos de previsão avançados**: LSTM Bayesian e Prophet com quantificação de incerteza
+- ✅ **Simulação Monte Carlo**: Análise probabilística de cenários futuros com GBM
+- ✅ **Análise fundamentalista**: Balanços patrimoniais, DRE e fluxos de caixa via Finnhub
+- ✅ **Backtesting inteligente**: Teste de estratégias com otimização automática de parâmetros
+- ✅ **Sistema de alertas em tempo real**: Notificações baseadas em preços, RSI, MACD e condições personalizadas
+- ✅ **Data augmentation**: Técnicas avançadas (jittering, time/magnitude warping) para datasets pequenos
+- ✅ **Feature selection adaptativo**: Seleção automática de features baseada no dataset
+- ✅ **Ensemble learning**: Combinação de múltiplos modelos para maior precisão
+- ✅ **Múltiplas fontes de dados**: Integração com 7+ APIs financeiras diversas
 - ✅ **Sistema de cache inteligente**: Otimização de performance com SQLite
-- ✅ **Alertas personalizáveis**: Notificações baseadas em preços e indicadores
 - ✅ **Exportação de dados**: CSV, TXT e outros formatos
-- ✅ **Interface rica no terminal**: Menus navegáveis e gráficos interativos
+- ✅ **Interface rica no terminal**: Menus navegáveis e gráficos interativos com Rich
 
 ## 🔧 Tecnologias
 
+### Core Technologies
 - **Python 3.9+**: Linguagem de programação principal
-- **Rich**: Interface de usuário avançada para terminal
-- **Plotext**: Visualização de gráficos no terminal
-- **SQLite**: Armazenamento local e cache de dados
-- **Pandas & NumPy**: Manipulação e análise de dados
-- **TensorFlow/Keras**: Modelos LSTM para previsão
-- **Prophet (Meta)**: Análise de tendências e sazonalidades
-- **scikit-learn**: Pré-processamento e métricas de ML
-- **TA-Lib**: Biblioteca de análise técnica
+- **Rich**: Interface de usuário avançada para terminal com suporte a cores e layouts
+- **Plotext**: Visualização de gráficos ASCII no terminal
+- **SQLite**: Armazenamento local, cache e persistência de dados
+- **Pandas & NumPy**: Manipulação e análise de dados de alta performance
+
+### Machine Learning & AI
+- **TensorFlow/Keras**: Framework principal para deep learning
+- **Scikit-learn**: Pré-processamento, métricas e validação de modelos
+- **Prophet (Meta)**: Análise de tendências, sazonalidades e decomposição temporal
+- **SciPy**: Algoritmos científicos e otimização numérica
+- **TA-Lib**: Biblioteca especializada em análise técnica
+
+### Análise Quantitativa Avançada
+- **Monte Carlo Dropout**: Quantificação de incerteza bayesiana
+- **Focal Loss**: Função de perda especializada para classes desbalanceadas
+- **Bayesian Neural Networks**: Redes neurais com quantificação de incerteza
+- **Adaptive Feature Selection**: Seleção inteligente de features
+- **Time Series Augmentation**: Aumento de dados para séries temporais
+- **Backtesting Library**: Framework de backtesting profissional
 
 ### APIs Integradas
 
-- **Finnhub**: Cotações em tempo real e busca de símbolos
-- **yfinance**: Dados históricos de mercado
+- **Finnhub**: Cotações em tempo real, busca de símbolos e dados fundamentalistas
+- **yfinance**: Dados históricos de mercado e informações corporativas
 - **python-bcb**: Indicadores macroeconômicos brasileiros (IPCA, SELIC, PTAX)
 - **Investpy**: Dados históricos com mapeamento para mercados globais
-- **FRED**: Séries econômicas americanas
-- **Nasdaq Data Link**: Datasets variados e commodities
-- **Alpha Vantage**: Dados históricos complementares
+- **FRED (Federal Reserve)**: Séries econômicas americanas e indicadores macro
+- **Nasdaq Data Link**: Datasets variados, commodities e dados alternativos
+- **Alpha Vantage**: Dados históricos complementares e análise de sentimento
+
+## 📈 Modelos de Machine Learning
+
+### LSTM Bayesian Avançado
+- **Arquitetura**: Bidirectional LSTM com Monte Carlo Dropout
+- **Quantificação de Incerteza**: Epistemic e aleatoric uncertainty
+- **Features**: Indicadores técnicos + features temporais + sentiment score
+- **Otimização**: Focal Loss para classes desbalanceadas
+- **Validação**: Cross-symbol validation e threshold optimization
+- **Métricas**: Accuracy, F1-weighted, Balanced Accuracy, Cohen's Kappa
+
+### Prophet (Meta) Multivariado
+- **Capacidades**: Análise de tendências, sazonalidades e feriados
+- **Regressores**: Indicadores técnicos como variáveis externas
+- **Intervalos de Confiança**: Previsões com bandas de incerteza
+- **Detecção**: Changepoints automáticos e anomalias
+- **Validação**: Backtesting temporal com métricas robustas
+
+### Monte Carlo Simulator
+- **Modelo**: Geometric Brownian Motion (GBM) 
+- **Parâmetros**: Drift e volatilidade calculados dinamicamente
+- **Simulações**: Até 10.000 trajetórias paralelas
+- **Estatísticas**: Percentis, VaR, métricas de risco
+- **Visualização**: Gráficos ASCII interativos
+
+### Ensemble & Hybrid Methods
+- **Ensemble LSTM + Monte Carlo**: Voting ponderado entre modelos
+- **Uncertainty Aggregation**: Combinação de incertezas epistêmicas
+- **Adaptive Weighting**: Pesos dinâmicos baseados em performance
+- **Calibration**: Calibração de incerteza para melhor confiabilidade
+
+### Avaliação de Modelos
+```
+Métricas LSTM Bayesian - AAPL:
+├─ Accuracy: 93.8%
+├─ F1-Score (Weighted): 0.645
+├─ Balanced Accuracy: 38.0%
+├─ Mean Confidence: 0.742
+├─ Epistemic Uncertainty: 0.156
+└─ Threshold Optimization: Enabled
+```
+
+## 🎯 Recursos Avançados
+
+### Sistema de Cache Inteligente
+- **Backend**: SQLite com compressão automática
+- **Estratégias**: TTL diferenciado por fonte de dados
+- **Otimização**: Cache-aside pattern com fallback graceful
+- **Persistência**: Modelos treinados e configurações de usuário
+
+### Sistema de Alertas Proativo
+- **Monitoramento**: Thread dedicada para verificação contínua
+- **Tipos de Alerta**: 
+  - Preços (acima/abaixo de threshold)
+  - Indicadores técnicos (RSI sobrecompra/sobrevenda)
+  - Cruzamentos de médias móveis e sinais MACD
+  - Condições customizadas programáveis
+- **Notificações**: Sistema operacional + console em tempo real
+- **Configuração**: Interface interativa para criação/edição
+
+### Data Augmentation Avançado
+- **Técnicas Implementadas**:
+  - **Jittering**: Adição de ruído gaussiano calibrado
+  - **Time Warping**: Distorção temporal com cubic splines
+  - **Magnitude Warping**: Scaling não-linear de amplitudes
+- **Segurança**: Timeout protection e validação de qualidade
+- **Adaptativo**: Multiplicadores baseados no tamanho do dataset
+
+### Feature Selection Inteligente
+- **Métodos**: Correlation filtering, variance thresholding, mutual information
+- **Adaptativo**: Configuração automática baseada no tamanho do dataset
+- **Validação**: Cross-validation para seleção robusta
+- **Análise**: Matriz de correlação e grupos de redundância
+
+### Arquitetura Adaptativa
+- **Dynamic LSTM**: Arquitetura ajustada automaticamente ao dataset
+- **Complexity Management**: Controle da relação samples/parameters
+- **Regularization**: Dropout e L2 adaptativos
+- **Early Stopping**: Parada inteligente com múltiplas métricas
+
+### Tratamento de Classes Desbalanceadas
+- **Focal Loss**: Implementação customizada com parâmetros adaptativos
+- **Class Weighting**: Estratégias balanced, balanced_smooth e inverse
+- **Threshold Optimization**: Busca grid para otimização de F1-score
+- **Oversampling**: Técnicas de data augmentation específicas
+
+### Exportação e Relatórios
+- **Formatos**: CSV estruturado, TXT formatado, JSON configurações
+- **Conteúdo**: Dados históricos, indicadores calculados, resultados de backtesting
+- **Automação**: Relatórios schedulados e exportação em batch
+- **Compressão**: Otimização automática para arquivos grandes
 
 ## 📋 Pré-requisitos
 
@@ -102,7 +215,7 @@ Após iniciar a aplicação, você verá um dashboard com visão geral do mercad
 
 1. **Análise de Ativo**: Insira um símbolo para visualizar gráficos e indicadores técnicos
 2. **Indicadores Macro**: Dados detalhados do BCB, FRED e Nasdaq Data Link
-3. **Previsões**: Execute modelos LSTM ou Prophet com métricas e gráficos comparativos
+3. **Previsões**: Execute modelos LSTM Bayesian ou Prophet com métricas e gráficos comparativos
 4. **Watchlist & Configurações**: Gerencie favoritos, alertas e preferências
 
 ### Configuração de Alertas
@@ -111,6 +224,7 @@ Tipo de Alerta:
 1. Preço acima de valor
 2. RSI em sobrecompra (>70)
 3. MACD cruzamento altista
+4. Condições personalizadas
 ```
 
 ## 🧪 Testes
@@ -152,26 +266,6 @@ pytest tests/test_models.py::test_lstm_prediction
 8. Envie para a branch (`git push origin feature/nome-da-feature`)
 9. Abra um Pull Request
 
-## 📈 Modelos de Machine Learning
-
-### LSTM (Long Short-Term Memory)
-- Treinado com dados históricos e indicadores técnicos
-- Predição de preços futuros
-- Métricas: MAE, RMSE, taxa de acerto direcional
-
-### Prophet (Meta)
-- Análise de tendências e sazonalidades
-- Detecção de padrões temporais
-- Previsões com intervalos de confiança
-
-### Avaliação de Modelos
-```
-Métricas LSTM - AAPL:
-├─ MAE: 2.34
-├─ RMSE: 3.12
-└─ Acerto Direcional: 67.8%
-```
-
 ## 🚢 Deploy
 
 ### Executável Standalone
@@ -189,34 +283,6 @@ docker build -t lexicon-cli .
 # Executar container
 docker run -it --rm lexicon-cli
 ```
-
-## 🛣️ Roadmap
-
-- [ ] **Interface Gráfica (GUI)**: Implementação com PySide6
-- [ ] **Testes Expandidos**: Maior cobertura e testes de borda
-- [ ] **Persistência de Modelos**: Salvar modelos treinados (LSTM/Prophet)
-- [ ] **Análise Fundamentalista**: Balanços, DREs, fluxos de caixa
-- [ ] **Alertas Avançados**: Notificações do sistema operacional
-- [ ] **Backtesting**: Simulação de estratégias de trading
-
-## 🎯 Recursos Avançados
-
-### Cache Inteligente
-- Armazenamento local com SQLite
-- Tempo de expiração configurável
-- Otimização automática de requisições
-
-### Sistema de Alertas
-- Monitoramento contínuo em thread separada
-- Alertas baseados em:
-  - Níveis de preço
-  - Condições de indicadores (RSI, MACD)
-  - Cruzamentos de médias móveis
-
-### Exportação de Dados
-- **CSV**: Dados históricos e tabelas de indicadores
-- **TXT**: Watchlist e configurações
-- **JSON**: Configurações completas do usuário
 
 ## 📜 Licença
 

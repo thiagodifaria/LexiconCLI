@@ -12,16 +12,35 @@ class AnalysisController:
             logger.warning("DataFrame OHLCV vazio fornecido para cálculo de indicadores.")
             return pd.DataFrame()
         
-        try:           
-            df_ohlcv.columns = [col.capitalize() if col.lower() in ['open', 'high', 'low', 'close', 'volume'] else col for col in df_ohlcv.columns]            
+        try:
+            logger.debug(f"Colunas originais do DataFrame: {list(df_ohlcv.columns)}")
+            
+            column_mapping = {}
+            required_cols_lower = ['open', 'high', 'low', 'close', 'volume']
+            
+            for col in df_ohlcv.columns:
+                col_lower = col.lower()
+                if col_lower in required_cols_lower:
+                    column_mapping[col] = col_lower.capitalize()
+            
+            if column_mapping:
+                df_ohlcv = df_ohlcv.rename(columns=column_mapping)
+                logger.debug(f"Colunas após mapeamento: {list(df_ohlcv.columns)}")
             
             required_cols = ['Open', 'High', 'Low', 'Close'] 
-            if not all(col in df_ohlcv.columns for col in required_cols):
-                logger.error(f"DataFrame não contém todas as colunas OHLCV necessárias após capitalização. Faltando: {[c for c in required_cols if c not in df_ohlcv.columns]}")
+            missing_cols = [col for col in required_cols if col not in df_ohlcv.columns]
+            
+            if missing_cols:
+                logger.error(f"DataFrame não contém todas as colunas OHLCV necessárias. Faltando: {missing_cols}")
+                logger.error(f"Colunas disponíveis: {list(df_ohlcv.columns)}")
                 return pd.DataFrame()
+            
             if 'Volume' not in df_ohlcv.columns:
-                logger.warning("Coluna 'Volume' não encontrada. Alguns indicadores podem não ser calculados ou ser menos precisos.")
+                logger.warning("Coluna 'Volume' não encontrada. Criando com valores zero.")
                 df_ohlcv['Volume'] = 0 
+            
+            if len(df_ohlcv) < 30:
+                logger.warning(f"Dados históricos insuficientes ({len(df_ohlcv)} dias). Mínimo recomendado: 30 dias.")
             
             indicadores_obj = IndicadoresTecnicos(df_ohlcv)
 
@@ -36,10 +55,10 @@ class AnalysisController:
             indicadores_obj.adicionar_macd()
             indicadores_obj.adicionar_bandas_bollinger()
             indicadores_obj.adicionar_adx()
-
             indicadores_obj.adicionar_rsi()
             indicadores_obj.adicionar_estocastico()
-            if 'Volume' in df_ohlcv.columns and df_ohlcv['Volume'].sum() > 0 :
+            
+            if 'Volume' in df_ohlcv.columns and df_ohlcv['Volume'].sum() > 0:
                 indicadores_obj.adicionar_obv()
             else:
                 indicadores_obj.df['OBV'] = pd.NA
@@ -48,9 +67,13 @@ class AnalysisController:
             indicadores_obj.adicionar_desvio_padrao_retornos()
             
             df_final = indicadores_obj.obter_df_com_indicadores()            
-         
+            
+            logger.info(f"Indicadores calculados com sucesso. DataFrame final: {df_final.shape}")
             return df_final
 
+        except KeyError as e:
+            logger.error(f"Erro de coluna não encontrada: {e}. Colunas disponíveis: {list(df_ohlcv.columns)}")
+            return pd.DataFrame()
         except Exception as e:
             logger.error(f"Erro geral ao calcular indicadores: {e}", exc_info=True)
             return pd.DataFrame()

@@ -2,14 +2,20 @@ from views.terminal.main_view import MainView
 from views.terminal.menu import MenuPrincipal
 from controllers.data_controller import DataController
 from controllers.analysis_controller import AnalysisController 
-from controllers.prediction_controller import PredictionController 
-from config.settings import LSTM_LOOKBACK_PERIOD, LSTM_EPOCHS, LSTM_BATCH_SIZE, ALERT_CHECK_INTERVAL_SECONDS
+from controllers.prediction_controller import PredictionController
+from controllers.backtesting_controller import BacktestingController
+from controllers.simulation_controller import SimulationController
+from config.settings import (
+    LSTM_LOOKBACK_PERIOD, LSTM_EPOCHS, LSTM_BATCH_SIZE, ALERT_CHECK_INTERVAL_SECONDS,
+    LSTM_DROPOUT_RATE, LSTM_ACTIVATION_DENSE
+)
 from utils.logger import logger
+from utils.notifications import enviar_notificacao_sistema
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-import time # Para o loop de verificação de alertas
-import threading # Para o loop de verificação de alertas
+import time
+import threading
 
 class AppController:
     def __init__(self):
@@ -21,17 +27,18 @@ class AppController:
             'lookback_period': LSTM_LOOKBACK_PERIOD,
             'epochs': LSTM_EPOCHS,
             'batch_size': LSTM_BATCH_SIZE,
-            'lstm_units_1': 50,
-            'lstm_units_2': 50,
-            'dense_units': 25,
-            'activation_dense': 'relu',
+            'dropout_rate': 0.4,
+            'activation_dense': LSTM_ACTIVATION_DENSE,
             'optimizer': 'adam',
             'loss_function': 'mean_squared_error',
             'prophet_configs': {}
         }
         self.prediction_controller = PredictionController(model_config=lstm_config)
+        self.backtesting_controller = BacktestingController(self.data_controller)
+        
+        self.simulation_controller = SimulationController(self.data_controller)
 
-        self.view = MainView(self.data_controller, self.analysis_controller, self.prediction_controller)
+        self.view = MainView(self.data_controller, self.analysis_controller, self.prediction_controller, self.backtesting_controller)
         self.menu = MenuPrincipal(self.console)
         self._rodando_verificador_alertas = False
         self._thread_verificador_alertas = None
@@ -49,7 +56,7 @@ class AppController:
         self._rodando_verificador_alertas = False
         if self._thread_verificador_alertas and self._thread_verificador_alertas.is_alive():
             logger.info("Aguardando thread de verificação de alertas finalizar...")
-            self._thread_verificador_alertas.join(timeout=5) # Espera um pouco para a thread terminar
+            self._thread_verificador_alertas.join(timeout=5)
             if self._thread_verificador_alertas.is_alive():
                 logger.warning("Thread de verificação de alertas não finalizou a tempo.")
         logger.info("Thread de verificação de alertas parada.")
@@ -82,18 +89,19 @@ class AppController:
                     sinais = self.analysis_controller.verificar_sinais_para_alertas(simbolo, df_com_indicadores, alertas_do_simbolo)
                     novos_sinais_disparados_neste_ciclo.extend(sinais)
                 
-                # Lógica para exibir apenas novos alertas ou atualizar a view de alguma forma
-                # Esta é uma implementação simples, pode precisar de refinamento para integração com a MainView
                 alertas_realmente_novos = [s for s in novos_sinais_disparados_neste_ciclo if s not in self._ultimos_alertas_disparados]
                 if alertas_realmente_novos:
-                    self._ultimos_alertas_disparados.extend(alertas_realmente_novos) # Adiciona para não repetir imediatamente
-                    # Idealmente, passaria isso para a MainView atualizar o painel de mensagens
+                    self._ultimos_alertas_disparados.extend(alertas_realmente_novos)
                     for alerta_msg in alertas_realmente_novos:
                         self.console.print(f"[bold blink red]ALERTA DISPARADO:[/bold blink red] {alerta_msg}", style="on dark_red")
                         logger.info(f"ALERTA DISPARADO E EXIBIDO: {alerta_msg}")
+                        enviar_notificacao_sistema(
+                            titulo="LexiconCLI - Alerta de Mercado", 
+                            mensagem=alerta_msg
+                        )
 
 
-                if len(self._ultimos_alertas_disparados) > 50 : # Limpa buffer antigo
+                if len(self._ultimos_alertas_disparados) > 50 :
                     self._ultimos_alertas_disparados = self._ultimos_alertas_disparados[-25:]
 
 
@@ -133,6 +141,15 @@ class AppController:
                         elif escolha_analise == 2:
                              logger.info(f"Usuário selecionou Indicadores Técnicos para {simbolo}.")
                              self.view.exibir_indicadores_tecnicos_ativo(simbolo)
+                        elif escolha_analise == 3: 
+                             logger.info(f"Usuário selecionou Simulação de Monte Carlo para {simbolo}.")
+                             self.view.exibir_simulacao_monte_carlo(simbolo, self.simulation_controller)
+                        elif escolha_analise == 4: 
+                             logger.info(f"Usuário selecionou Análise Fundamentalista para {simbolo}.")
+                             self.view.exibir_analise_fundamentalista(simbolo)
+                        elif escolha_analise == 5:
+                             logger.info(f"Usuário selecionou Backtesting para {simbolo}.")
+                             self.view.exibir_backtest_ativo(simbolo)
                         
                 elif escolha_menu == 3:
                     logger.info("Usuário selecionou Ver Indicadores Macroeconômicos Detalhados.")

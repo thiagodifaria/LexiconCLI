@@ -1,10 +1,11 @@
 from rich.table import Table
 from rich.text import Text
 from utils.formatters import formatar_valor_monetario, formatar_percentual, formatar_data_ptbr
+from utils.logger import configurar_logger
 from models.data_model import CotacaoAtivo, IndicadorMacroeconomico, SerieEconomica 
 import pandas as pd
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import json
 
 def criar_tabela_ativos_monitorados(ativos_data: list[CotacaoAtivo]):
@@ -112,7 +113,7 @@ def criar_tabela_indicadores_tecnicos(indicadores_df):
     for coluna in colunas_validas:
         tabela.add_column(coluna, justify="right")
 
-    ultimos_registros = indicadores_df.tail(5).iloc[::-1] # Pega os últimos 5 e inverte a ordem
+    ultimos_registros = indicadores_df.tail(5).iloc[::-1]
     
     for index, row in ultimos_registros.iterrows():
         valores_linha = [index.strftime('%d/%m/%Y') if isinstance(index, pd.Timestamp) else str(index)]
@@ -122,6 +123,80 @@ def criar_tabela_indicadores_tecnicos(indicadores_df):
             elif isinstance(valor, float): valores_linha.append(f"{valor:.2f}")
             else: valores_linha.append(str(valor))
         tabela.add_row(*valores_linha)
+    return tabela
+
+def criar_tabela_estatisticas_monte_carlo(metadados: dict): 
+    if not metadados or not metadados.get('sucesso', False):
+        return Text("Erro: Metadados da simulação não disponíveis ou simulação falhou.", style="bold red")
+    
+    estatisticas = metadados.get('estatisticas', {})
+    
+    tabela = Table(title=f"Estatísticas da Simulação Monte Carlo - {metadados.get('simbolo', 'N/A')}", 
+                   show_header=True, header_style="bold magenta")
+    tabela.add_column("Métrica", style="dim cyan", width=35)
+    tabela.add_column("Valor", justify="right", width=25)
+    
+    tabela.add_row("Símbolo", metadados.get('simbolo', 'N/A'))
+    tabela.add_row("Número de Simulações", f"{metadados.get('num_simulacoes', 'N/A'):,}")
+    tabela.add_row("Dias Simulados", str(metadados.get('dias_simulacao', 'N/A')))
+    tabela.add_row("Período Histórico Usado", metadados.get('periodo_historico', 'N/A'))
+    tabela.add_row("Pontos de Dados Históricos", f"{metadados.get('pontos_historicos_utilizados', 'N/A'):,}")
+    
+    tabela.add_row("", "")
+    tabela.add_row("[bold]RESULTADOS DA SIMULAÇÃO[/bold]", "")
+    
+    preco_inicial = estatisticas.get('preco_inicial', 0)
+    preco_final_medio = estatisticas.get('preco_final_medio', 0)
+    retorno_esperado = estatisticas.get('retorno_esperado_pct', 0)
+    
+    tabela.add_row("Preço Inicial", formatar_valor_monetario(preco_inicial, "$"))
+    
+    cor_retorno = "green" if retorno_esperado >= 0 else "red"
+    preco_final_str = Text(formatar_valor_monetario(preco_final_medio, "$"), style=cor_retorno)
+    retorno_str = Text(formatar_percentual(retorno_esperado), style=cor_retorno)
+    
+    tabela.add_row("Preço Final Médio", preco_final_str)
+    tabela.add_row("Retorno Esperado", retorno_str)
+    
+    preco_final_mediano = estatisticas.get('preco_final_mediano', 0)
+    tabela.add_row("Preço Final Mediano", formatar_valor_monetario(preco_final_mediano, "$"))
+    
+    tabela.add_row("", "")
+    tabela.add_row("[bold]INTERVALO DE CONFIANÇA (90%)[/bold]", "")
+    
+    percentil_5 = estatisticas.get('percentil_5', 0)
+    percentil_95 = estatisticas.get('percentil_95', 0)
+    
+    tabela.add_row("Pior Cenário (P5)", formatar_valor_monetario(percentil_5, "$"))
+    tabela.add_row("Melhor Cenário (P95)", formatar_valor_monetario(percentil_95, "$"))
+    
+    prob_lucro = ((preco_final_medio > preco_inicial) and retorno_esperado > 0)
+    prob_lucro_str = "Alta" if prob_lucro else "Baixa"
+    cor_prob = "green" if prob_lucro else "red"
+    
+    tabela.add_row("", "")
+    tabela.add_row("Probabilidade de Lucro", Text(prob_lucro_str, style=cor_prob))
+    
+    tabela.add_row("", "")
+    tabela.add_row("[bold]MÉTRICAS DE RISCO[/bold]", "")
+    
+    volatilidade = estatisticas.get('volatilidade_simulacao', 0)
+    tabela.add_row("Volatilidade da Simulação", f"{volatilidade:.3f}")
+    
+    if volatilidade < 0.1:
+        classificacao_risco = Text("Baixo", style="green")
+    elif volatilidade < 0.3:
+        classificacao_risco = Text("Moderado", style="yellow")
+    else:
+        classificacao_risco = Text("Alto", style="red")
+    
+    tabela.add_row("Classificação de Risco", classificacao_risco)
+    
+    preco_min = estatisticas.get('preco_final_min', 0)
+    preco_max = estatisticas.get('preco_final_max', 0)
+    tabela.add_row("Preço Mínimo Simulado", formatar_valor_monetario(preco_min, "$"))
+    tabela.add_row("Preço Máximo Simulado", formatar_valor_monetario(preco_max, "$"))
+    
     return tabela
 
 def criar_tabela_previsoes_lstm(df_previsoes):
@@ -256,3 +331,210 @@ def criar_tabela_alertas_configurados(alertas: List[Dict[str, Any]]):
             alerta.get('mensagem_customizada', '')
         )
     return tabela
+
+def criar_tabela_relatorio_financeiro(titulo: str, dados_relatorio: Optional[Dict]) -> Table | Text:
+          
+    if not dados_relatorio:
+        return Text(f"Dados para '{titulo}' não fornecidos.", style="yellow")
+    
+    if isinstance(dados_relatorio, str):
+        try:
+            dados_relatorio = json.loads(dados_relatorio)
+        except json.JSONDecodeError:
+            return Text(f"Dados para '{titulo}' em formato inválido (JSON malformado).", style="red")
+    
+    if not isinstance(dados_relatorio, dict):
+        return Text(f"Dados para '{titulo}' em formato inesperado: {type(dados_relatorio).__name__}", style="red")
+    
+    if 'data' not in dados_relatorio:
+        return Text(f"Estrutura de dados inválida para '{titulo}' - campo 'data' não encontrado.", style="yellow")
+    
+    report_data = dados_relatorio['data']
+    
+    if isinstance(report_data, str):
+        try:
+            report_data = json.loads(report_data)
+        except json.JSONDecodeError:
+            return Text(f"Campo 'data' em formato JSON inválido para '{titulo}'.", style="red")
+    
+    if not isinstance(report_data, list):
+        return Text(f"Formato de dados inesperado para '{titulo}' - 'data' deve ser lista.", style="yellow")
+    
+    if not report_data:
+        return Text(f"Nenhum dado financeiro disponível para '{titulo}'.", style="yellow")
+
+    tabela = Table(title=titulo, show_header=True, header_style="bold magenta", min_width=100)
+
+    try:
+        periodos_recentes = report_data[:3] if len(report_data) >= 3 else report_data
+    except TypeError:
+        return Text(f"Erro ao processar dados para '{titulo}' - estrutura inválida.", style="red")
+    
+    if not periodos_recentes:
+        return Text(f"Nenhum período de relatório encontrado para '{titulo}'.", style="yellow")
+
+    periodos_validos = []
+    for periodo in periodos_recentes:
+        if isinstance(periodo, dict) and 'endDate' in periodo:
+            periodos_validos.append(periodo)
+    
+    if not periodos_validos:
+        return Text(f"Nenhum período válido encontrado para '{titulo}'.", style="yellow")
+
+    try:
+        datas_periodos = []
+        for periodo in periodos_validos:
+            end_date = periodo['endDate']
+            if isinstance(end_date, str):
+                data_formatada = pd.to_datetime(end_date).strftime('%Y-%m-%d')
+            else:
+                data_formatada = str(end_date)
+            datas_periodos.append(data_formatada)
+    except Exception:
+        return Text(f"Erro ao processar datas para '{titulo}'.", style="red")
+    
+    tabela.add_column("Conceito Contábil", style="dim cyan", no_wrap=False, width=45)
+    for data in datas_periodos:
+        tabela.add_column(data, justify="right")
+
+    primeiro_periodo = periodos_validos[0]
+    if 'report' not in primeiro_periodo or not primeiro_periodo['report']:
+        return Text(f"Relatório para o período mais recente de '{titulo}' está vazio.", style="yellow")
+    
+    todos_conceitos = set()
+    for periodo in periodos_validos:
+        report_items = periodo.get('report', [])
+        if isinstance(report_items, list):
+            for item in report_items:
+                if isinstance(item, dict) and 'concept' in item:
+                    todos_conceitos.add(item['concept'])
+    
+    if not todos_conceitos:
+        return Text(f"Nenhum conceito contábil encontrado para '{titulo}'.", style="yellow")
+    
+    conceitos_unicos = sorted(list(todos_conceitos))
+
+    for conceito in conceitos_unicos:
+        valores_linha = [conceito]
+        
+        for periodo in periodos_validos:
+            valor_item = None
+            report_items = periodo.get('report', [])
+            
+            if isinstance(report_items, list):
+                for item in report_items:
+                    if isinstance(item, dict) and item.get('concept') == conceito:
+                        valor_item = item
+                        break
+            
+            if valor_item:
+                valor = valor_item.get('value')
+                if valor is None or valor == 'None':
+                    valor_formatado = "N/A"
+                else:
+                    try:
+                        if isinstance(valor, (int, float)):
+                            valor_formatado = f"{valor:,.0f}"
+                        else:
+                            valor_num = float(str(valor).replace(',', ''))
+                            valor_formatado = f"{valor_num:,.0f}"
+                    except (ValueError, TypeError):
+                        valor_formatado = str(valor)
+            else:
+                valor_formatado = "N/A"
+            
+            valores_linha.append(valor_formatado)
+        
+        tabela.add_row(*valores_linha)
+
+    return tabela
+
+def criar_tabela_backtest(stats: Optional[pd.Series]) -> Table | Text:
+    """Cria uma tabela Rich para exibir as estatísticas de um resultado de backtest."""
+    if stats is None or stats.empty:
+        return Text("Não foi possível gerar as estatísticas do backtest.", style="yellow")
+    
+    tabela = Table(title="Resultados do Backtest (Estratégia: SmaCross)", show_header=True, header_style="bold magenta")
+    tabela.add_column("Métrica", style="cyan", width=30)
+    tabela.add_column("Valor", justify="right", style="green")
+
+    format_map = {
+        "Return [%]": "{:.2f}%",
+        "Buy & Hold Return [%]": "{:.2f}%",
+        "Max. Drawdown [%]": "{:.2f}%",
+        "Win Rate [%]": "{:.2f}%",
+        "Profit Factor": "{:.2f}",
+        "Sharpe Ratio": "{:.2f}",
+        "Sortino Ratio": "{:.2f}",
+        "Avg. Trade [%]": "{:.2f}%"
+    }
+
+    for index, value in stats.items():
+        if index.startswith("_"):
+            continue
+        
+        valor_formatado = str(value)
+        if isinstance(value, float):
+            valor_formatado = format_map.get(str(index), "{:,.2f}").format(value)
+            
+        tabela.add_row(str(index), valor_formatado)
+        
+    return tabela
+
+def criar_tabela_previsoes_lstm_classificacao(df_previsoes):
+    """
+    Cria tabela específica para exibir resultados de classificação LSTM.
+    """
+    tabela = Table(title="Previsões LSTM - Classificação de Direção", show_header=True, header_style="bold yellow")
+    tabela.add_column("Data", style="dim", justify="center")
+    tabela.add_column("Classe Real", justify="center")
+    tabela.add_column("Classe Prevista", justify="center")
+    tabela.add_column("Prob. BAIXA", justify="right")
+    tabela.add_column("Prob. NEUTRO", justify="right")
+    tabela.add_column("Prob. ALTA", justify="right")
+    tabela.add_column("Acerto", justify="center")
+    
+    mapeamento_classes = {0: "BAIXA", 1: "NEUTRO", 2: "ALTA"}
+    
+    for _, row in df_previsoes.iterrows():
+        data_str = row['Data'].strftime('%d/%m/%Y') if isinstance(row['Data'], (datetime, pd.Timestamp)) else str(row['Data'])
+        
+        classe_real_str = mapeamento_classes.get(row['Classe_Real'], str(row['Classe_Real']))
+        classe_prevista_str = mapeamento_classes.get(row['Classe_Prevista'], str(row['Classe_Prevista']))
+        
+        acertou = row['Classe_Real'] == row['Classe_Prevista']
+        cor_acerto = "green" if acertou else "red"
+        acerto_str = "SIM" if acertou else "NAO"
+        
+        prob_baixa = f"{row['Prob_Baixa']:.3f}"
+        prob_neutro = f"{row['Prob_Neutro']:.3f}"
+        prob_alta = f"{row['Prob_Alta']:.3f}"
+        
+        prob_max = max(row['Prob_Baixa'], row['Prob_Neutro'], row['Prob_Alta'])
+        cor_confianca = "green" if prob_max > 0.6 else "yellow" if prob_max > 0.4 else "red"
+        
+        tabela.add_row(
+            data_str,
+            classe_real_str,
+            Text(classe_prevista_str, style=cor_confianca),
+            prob_baixa,
+            prob_neutro,
+            prob_alta,
+            Text(acerto_str, style=cor_acerto)
+        )
+    return tabela
+
+def criar_tabela_metricas_classificacao(metricas):
+    """
+    Cria tabela para exibir métricas de classificação de forma organizada.
+    """
+    tabela = Table(title="Métricas de Classificação LSTM", show_header=True, header_style="bold magenta")
+    tabela.add_column("Métrica", style="dim cyan", width=25)
+    tabela.add_column("Valor", justify="right", width=15)
+    tabela.add_column("Detalhes por Classe", width=40)
+    
+    tabela.add_row("Acurácia Geral", f"{metricas.get('accuracy', 0):.4f}", "")
+    tabela.add_row("Acurácia Balanceada", f"{metricas.get('balanced_accuracy', 0):.4f}", "")
+    tabela.add_row("F1-Score (Weighted)", f"{metricas.get('f1_score_weighted', 0):.4f}", "")
+    tabela.add_row("Precisão (Weighted)", f"{metricas.get('precision_weighted', 0):.4f}", "")
+    tabela.add_row("Recall (Weighted)", f"{metricas.get('recall_weighted', 0):.4f}", "")

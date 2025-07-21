@@ -59,9 +59,12 @@ class MenuPrincipal:
         self.console.print(Panel(Text(f"Análise do Ativo: {simbolo}", justify="center", style="bold blue"), title="Menu de Análise"))
         self.console.print("1. Ver Gráfico de Preços Históricos")
         self.console.print("2. Calcular e Ver Indicadores Técnicos")
+        self.console.print("3. Executar Simulação de Monte Carlo")
+        self.console.print("4. Ver Análise Fundamentalista (Relatórios Anuais)")
+        self.console.print("5. Backtesting de Estratégia (SmaCross)")
         self.console.print("0. Voltar ao Menu Principal")
         
-        escolha = IntPrompt.ask("Escolha uma opção para análise", choices=["0", "1", "2"], show_choices=False)
+        escolha = IntPrompt.ask("Escolha uma opção para análise", choices=["0", "1", "2", "3", "4", "5"], show_choices=False)
         return escolha
 
     def exibir_menu_escolha_modelo_previsao(self, simbolo: str):
