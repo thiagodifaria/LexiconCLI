@@ -213,10 +213,11 @@ python main.py
 ### Menu Principal
 Após iniciar a aplicação, você verá um dashboard com visão geral do mercado. Navegue pelos menus usando as opções numéricas:
 
-1. **Análise de Ativo**: Insira um símbolo para visualizar gráficos e indicadores técnicos
-2. **Indicadores Macro**: Dados detalhados do BCB, FRED e Nasdaq Data Link
-3. **Previsões**: Execute modelos LSTM Bayesian ou Prophet com métricas e gráficos comparativos
-4. **Watchlist & Configurações**: Gerencie favoritos, alertas e preferências
+1. **Dashboard**: Painel de dados de ativos
+2. **Análise de Ativo**: Insira um símbolo para visualizar gráficos e indicadores técnicos
+3. **Indicadores Macro**: Dados detalhados do BCB, FRED e Nasdaq Data Link
+4. **Previsões**: Execute modelos LSTM Bayesian ou Prophet com métricas e gráficos comparativos
+5. **Watchlist & Configurações**: Gerencie favoritos, alertas e preferências
 
 ### Configuração de Alertas
 ```
