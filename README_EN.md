@@ -275,15 +275,6 @@ pip install pyinstaller
 pyinstaller --onefile --name LexiconCLI main.py
 ```
 
-### Docker (Future)
-```bash
-# Build image
-docker build -t lexicon-cli .
-
-# Run container
-docker run -it --rm lexicon-cli
-```
-
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
