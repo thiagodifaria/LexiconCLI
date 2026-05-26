@@ -7,7 +7,7 @@ from controllers.backtesting_controller import BacktestingController
 from controllers.simulation_controller import SimulationController
 from config.settings import (
     LSTM_LOOKBACK_PERIOD, LSTM_EPOCHS, LSTM_BATCH_SIZE, ALERT_CHECK_INTERVAL_SECONDS,
-    LSTM_DROPOUT_RATE, LSTM_ACTIVATION_DENSE
+    LSTM_DROPOUT_RATE, LSTM_ACTIVATION_DENSE, REALTIME_ENABLED
 )
 from utils.logger import logger
 from utils.notifications import enviar_notificacao_sistema
@@ -34,6 +34,7 @@ class AppController:
             'prophet_configs': {}
         }
         self.prediction_controller = PredictionController(model_config=lstm_config)
+        self.prediction_controller.data_controller = self.data_controller
         self.backtesting_controller = BacktestingController(self.data_controller)
         
         self.simulation_controller = SimulationController(self.data_controller)
@@ -99,6 +100,10 @@ class AppController:
                             titulo="LexiconCLI - Alerta de Mercado", 
                             mensagem=alerta_msg
                         )
+                        self.data_controller.message_broker.publish(
+                            "alert.triggered",
+                            {"message": alerta_msg, "source": "client-cli"},
+                        )
 
 
                 if len(self._ultimos_alertas_disparados) > 50 :
@@ -118,6 +123,14 @@ class AppController:
         logger.info("Sistema de Análise Financeira - LexiconCLI iniciado.")
         self.console.clear()
         self._iniciar_verificador_alertas()
+        if REALTIME_ENABLED:
+            try:
+                watchlist = self.data_controller.get_watchlist()
+                symbols = [item["simbolo"] for item in watchlist]
+                if symbols:
+                    self.data_controller.iniciar_stream_tempo_real(symbols)
+            except Exception as e:
+                logger.error(f"Erro ao iniciar stream em tempo real: {e}", exc_info=True)
         
         rodando = True
         while rodando:
@@ -198,4 +211,5 @@ class AppController:
                 self.console.input("Pressione Enter para continuar ou Ctrl+C para sair...")
         
         self._parar_verificador_alertas()
+        self.data_controller.parar_stream_tempo_real()
         self.console.print(Panel(Text("LexiconCLI encerrado. Até logo!", justify="center", style="bold yellow on blue")))

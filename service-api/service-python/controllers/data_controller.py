@@ -1,4 +1,8 @@
 from models.market_data import MarketDataProvider
+from models.message_broker import create_message_broker
+from models.realtime_stream import FinnhubRealtimeStream
+from models.timeseries_store import TickPoint, TimescaleStore
+from models.portfolio_rl import RiskReturnPolicyAgent
 from models.data_model import CotacaoAtivo, IndicadorMacroeconomico, DadosHistoricos, SerieEconomica, PreferenciasVisualizacao, AlertaConfigurado
 from models.database import (
     obter_watchlist_do_db, 
@@ -20,6 +24,10 @@ from typing import Optional, Dict, List, Any
 class DataController:
     def __init__(self):
         self.provider = MarketDataProvider()
+        self.timeseries_store = TimescaleStore()
+        self.timeseries_store.initialize()
+        self.message_broker = create_message_broker()
+        self.realtime_stream = FinnhubRealtimeStream()
 
     def _identificar_tipo_ativo_original(self, simbolo: str) -> str:
         if simbolo.startswith("^"): return "index"
@@ -148,7 +156,47 @@ class DataController:
             df_historico = pd.DataFrame(columns=cols_necessarias)
             logger.warning(f"Não foi possível obter dados históricos para {simbolo}")
         
-        return DadosHistoricos(simbolo=simbolo, dataframe=df_historico.sort_index())
+        df_historico = df_historico.sort_index()
+        self.timeseries_store.write_candles(simbolo, df_historico, intervalo, "historical_provider")
+        return DadosHistoricos(simbolo=simbolo, dataframe=df_historico)
+
+    def iniciar_stream_tempo_real(self, simbolos: List[str]) -> bool:
+        def on_tick(tick):
+            point = TickPoint(
+                symbol=tick.symbol,
+                price=tick.price,
+                timestamp_ms=tick.timestamp_ms,
+                volume=tick.volume,
+                source=tick.source,
+            )
+            self.timeseries_store.write_ticks([point])
+            self.message_broker.publish("market.tick", point)
+
+        return self.realtime_stream.start(simbolos, on_tick)
+
+    def parar_stream_tempo_real(self):
+        self.realtime_stream.stop()
+
+    def obter_ticks_recentes(self, simbolos: List[str], limite_por_simbolo: int = 1) -> pd.DataFrame:
+        return self.timeseries_store.fetch_latest_ticks(simbolos, limite_por_simbolo)
+
+    def sugerir_alocacao_portfolio(self, simbolos: List[str], periodo: str = "2y", aversao_risco: float = 2.0) -> Dict[str, Any]:
+        precos = {}
+        for simbolo in simbolos:
+            dados = self.buscar_dados_historicos(simbolo, periodo=periodo)
+            df = dados.dataframe
+            if not df.empty and "Close" in df.columns:
+                precos[simbolo] = df["Close"]
+
+        agente = RiskReturnPolicyAgent(risk_aversion=aversao_risco)
+        alocacao = agente.suggest_allocation(precos)
+        return {
+            "weights": alocacao.weights,
+            "expected_return": alocacao.expected_return,
+            "expected_volatility": alocacao.expected_volatility,
+            "score": alocacao.score,
+            "method": alocacao.method,
+        }
 
     def buscar_indicadores_macro_bcb(self) -> Dict[str, IndicadorMacroeconomico]:
         indicadores: Dict[str, IndicadorMacroeconomico] = {}

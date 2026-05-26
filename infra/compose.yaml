@@ -1,0 +1,115 @@
+services:
+  lexicon-cli:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: lexicon-cli
+    profiles: ["cli"]
+    stdin_open: true
+    tty: true
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      POSTGRES_DSN: postgresql://postgres:postgres@postgres:5432/lexicon
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      LEXICON_SQLITE_DB: /app/runtime/data/market_data.db
+      LEXICON_LOG_DIR: /app/runtime/logs
+      LEXICON_EXPORT_DIR: /app/runtime/exports
+      LEXICON_MODEL_DIR: /app/runtime/trained_models
+      MLFLOW_TRACKING_URI: /app/runtime/mlruns
+    volumes:
+      - lexicon_runtime:/app/runtime
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: ["python", "client-cli/main.py"]
+
+  lexicon-worker-alerts:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: lexicon-worker-alerts
+    profiles: ["workers"]
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      POSTGRES_DSN: postgresql://postgres:postgres@postgres:5432/lexicon
+      RABBITMQ_ENABLED: "true"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      LEXICON_SQLITE_DB: /app/runtime/data/market_data.db
+      LEXICON_LOG_DIR: /app/runtime/logs
+      MLFLOW_TRACKING_URI: /app/runtime/mlruns
+    volumes:
+      - lexicon_runtime:/app/runtime
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: ["python", "service-api/service-python/workers/alert_worker.py"]
+
+  lexicon-ops:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    profiles: ["ops"]
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      POSTGRES_DSN: postgresql://postgres:postgres@postgres:5432/lexicon
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      LEXICON_SQLITE_DB: /app/runtime/data/market_data.db
+      LEXICON_LOG_DIR: /app/runtime/logs
+      LEXICON_EXPORT_DIR: /app/runtime/exports
+      LEXICON_MODEL_DIR: /app/runtime/trained_models
+      MLFLOW_TRACKING_URI: /app/runtime/mlruns
+    volumes:
+      - lexicon_runtime:/app/runtime
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    entrypoint: ["python", "service-api/service-python/ops.py"]
+
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: lexicon-timescaledb
+    environment:
+      POSTGRES_DB: lexicon
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - lexicon_postgres:/var/lib/postgresql/data
+      - ../service-api/service-postgresql/migrations:/docker-entrypoint-initdb.d:ro
+      - ../service-api/service-postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lexicon"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: lexicon-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  lexicon_postgres:
+  lexicon_runtime:

@@ -18,7 +18,7 @@ from config.settings import (
     CACHE_EXPIRATION_SGS, CACHE_EXPIRATION_PTAX,
     CACHE_EXPIRATION_FINNHUB_QUOTE, CACHE_EXPIRATION_YFINANCE_HISTORY,
     CACHE_EXPIRATION_ALPHA_VANTAGE_TIMESERIES, CACHE_EXPIRATION_INVESTPY,
-    CACHE_EXPIRATION_FRED, CACHE_EXPIRATION_NASDAQ,
+    CACHE_EXPIRATION_FRED, CACHE_EXPIRATION_NASDAQ, CACHE_EXPIRATION_NEWS_SENTIMENT,
     BCB_SERIES_IPCA, BCB_SERIES_SELIC,
     DB_NAME, INVESTPY_COUNTRY_MAP
 )
@@ -622,3 +622,94 @@ class MarketDataProvider:
         except Exception as e:
             logger.error(f"Erro ao buscar símbolos na Finnhub para '{query}': {e}")
             return []
+
+    def obter_sentimento_noticias(self, simbolo: str, dias_lookback: int = 7) -> float:
+        params = {"simbolo": simbolo, "dias_lookback": dias_lookback}
+        dados_cache = self.cache_manager.get_cache("news_sentiment", f"sentiment_{simbolo}", params=params)
+        if dados_cache is not None:
+            try:
+                return float(dados_cache.get("score", 0.0))
+            except Exception:
+                return 0.0
+
+        textos: list[str] = []
+        if self.finnhub_client:
+            try:
+                data_fim = datetime.utcnow().date()
+                data_inicio = data_fim - timedelta(days=dias_lookback)
+                noticias = self.finnhub_client.company_news(
+                    simbolo,
+                    _from=data_inicio.isoformat(),
+                    to=data_fim.isoformat(),
+                )
+                for item in noticias[:20] if noticias else []:
+                    textos.append(f"{item.get('headline', '')} {item.get('summary', '')}")
+            except Exception as exc:
+                logger.warning(f"Erro ao buscar noticias Finnhub para sentimento de {simbolo}: {exc}")
+
+        if not textos and self.alpha_vantage_key:
+            try:
+                response = requests.get(
+                    "https://www.alphavantage.co/query",
+                    params={
+                        "function": "NEWS_SENTIMENT",
+                        "tickers": simbolo,
+                        "apikey": self.alpha_vantage_key,
+                        "limit": 20,
+                    },
+                    timeout=15,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                for item in payload.get("feed", [])[:20]:
+                    score = item.get("overall_sentiment_score")
+                    if score is not None:
+                        textos.append(str(score))
+                    else:
+                        textos.append(f"{item.get('title', '')} {item.get('summary', '')}")
+            except Exception as exc:
+                logger.warning(f"Erro ao buscar noticias Alpha Vantage para sentimento de {simbolo}: {exc}")
+
+        score = _calcular_sentimento_lexical(textos)
+        self.cache_manager.set_cache(
+            "news_sentiment",
+            f"sentiment_{simbolo}",
+            {"score": score, "items": len(textos)},
+            CACHE_EXPIRATION_NEWS_SENTIMENT,
+            params=params,
+        )
+        return score
+
+
+def _calcular_sentimento_lexical(textos: List[str]) -> float:
+    if not textos:
+        return 0.0
+
+    positive_terms = {
+        "beat", "beats", "growth", "profit", "profits", "upgrade", "bullish", "strong", "surge", "gain",
+        "gains", "record", "positive", "outperform", "buy", "alta", "lucro", "crescimento", "positivo",
+    }
+    negative_terms = {
+        "miss", "loss", "losses", "downgrade", "bearish", "weak", "fall", "falls", "drop", "drops",
+        "risk", "risks", "negative", "underperform", "sell", "baixa", "prejuizo", "queda", "negativo",
+    }
+
+    numeric_scores = []
+    lexical_score = 0
+    token_count = 0
+    for texto in textos:
+        try:
+            numeric_scores.append(float(texto))
+            continue
+        except ValueError:
+            pass
+        tokens = [token.strip(".,;:!?()[]{}\"'").lower() for token in texto.split()]
+        token_count += len(tokens)
+        lexical_score += sum(1 for token in tokens if token in positive_terms)
+        lexical_score -= sum(1 for token in tokens if token in negative_terms)
+
+    if numeric_scores:
+        return max(-1.0, min(1.0, float(sum(numeric_scores) / len(numeric_scores))))
+    if token_count == 0:
+        return 0.0
+    return max(-1.0, min(1.0, lexical_score / max(5, len(textos))))

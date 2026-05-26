@@ -3,16 +3,40 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+SERVICE_PYTHON_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(SERVICE_PYTHON_ROOT, '..', '..'))
+
+DATA_DIR = os.getenv("LEXICON_DATA_DIR", os.path.join(SERVICE_PYTHON_ROOT, "data"))
+LOG_DIR = os.getenv("LEXICON_LOG_DIR", os.path.join(SERVICE_PYTHON_ROOT, "logs"))
+EXPORT_DIR = os.getenv("LEXICON_EXPORT_DIR", os.path.join(SERVICE_PYTHON_ROOT, "exports"))
+MODEL_DIR = os.getenv("LEXICON_MODEL_DIR", os.path.join(SERVICE_PYTHON_ROOT, "trained_models"))
+
 FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
 ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 FRED_API_KEY = os.getenv("FRED_API_KEY") 
 NASDAQ_DATA_LINK_API_KEY = os.getenv("NASDAQ_DATA_LINK_API_KEY")
 NEWSAPI_API_KEY = os.getenv("NEWSAPI_API_KEY")
 
-DB_NAME = "data/market_data.db"
+DB_NAME = os.getenv("LEXICON_SQLITE_DB", os.path.join(DATA_DIR, "market_data.db"))
 
-LOG_FILE = "logs/financial_system.log"
+LOG_FILE = os.getenv("LEXICON_LOG_FILE", os.path.join(LOG_DIR, "financial_system.log"))
 LOG_LEVEL = "INFO"
+
+POSTGRES_DSN = os.getenv("POSTGRES_DSN", os.getenv("DATABASE_URL", ""))
+TIMESCALE_ENABLED = os.getenv("TIMESCALE_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+RABBITMQ_ENABLED = os.getenv("RABBITMQ_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", os.path.join(SERVICE_PYTHON_ROOT, "mlruns"))
+MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "lexiconcli")
+MLFLOW_ENABLED = os.getenv("MLFLOW_ENABLED", "true").lower() in ("1", "true", "yes", "on")
+
+WANDB_ENABLED = os.getenv("WANDB_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+WANDB_PROJECT = os.getenv("WANDB_PROJECT", "lexiconcli")
+
+REALTIME_PROVIDER = os.getenv("REALTIME_PROVIDER", "finnhub")
+REALTIME_ENABLED = os.getenv("REALTIME_ENABLED", "false").lower() in ("1", "true", "yes", "on")
 
 DEFAULT_ASSETS_MONITOR = ["AAPL", "MSFT", "GOOGL", "NVDA", "PETR4.SA", "VALE3.SA", "ITUB4.SA"]
 DEFAULT_INDICES_MONITOR = ["^BVSP", "^GSPC", "^IXIC"]
@@ -272,7 +296,7 @@ INVESTPY_COUNTRY_MAP = {
 DEFAULT_HISTORICAL_PERIOD = "1y"
 DEFAULT_INDICATORS_VIEW = ["SMA_21", "EMA_21", "MACD_Hist", "RSI_14"]
 ALERT_CHECK_INTERVAL_SECONDS = 60 * 5 
-DEFAULT_EXPORT_PATH = "exports/"
+DEFAULT_EXPORT_PATH = EXPORT_DIR
 DEFAULT_USER_ID_PREFERENCES = 0
 
 THRESHOLD_OPTIMIZATION_CONFIG = {

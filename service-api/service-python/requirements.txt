@@ -41,6 +41,11 @@ backtesting
 requests
 python-dotenv
 plyer
+websocket-client
+psycopg2-binary
+pika
+mlflow
+wandb
 
 # ===== DESENVOLVIMENTO E TESTES =====
 pytest

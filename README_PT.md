@@ -1,286 +1,331 @@
-# LexiconCLI - Sistema de Análise Financeira
+# LexiconCLI - Sistema de Analise Financeira
 
-LexiconCLI é um sistema de análise financeira interativo e de última geração, meticulosamente desenvolvido em Python para operar diretamente no ambiente de terminal. Este projeto foi concebido para capacitar traders, investidores, analistas quantitativos e entusiastas do mercado financeiro com ferramentas avançadas para monitoramento de mercados, previsões probabilísticas e quantificação de incerteza. A arquitetura do LexiconCLI implementa técnicas state-of-the-art em Deep Learning Financeiro, incluindo modelos como Bayesian LSTM, Prophet, além de técnicas como Monte Carlo Dropout e sistemas adaptativos de otimização. A estrutura segue rigorosamente o padrão Model-View-Controller (MVC), garantindo modularidade, escalabilidade, manutenibilidade empresarial e uma clara separação de responsabilidades. O sistema se destaca pela sua capacidade de integrar e processar dados de uma vasta gama de APIs financeiras, pela robustez de seu mecanismo de cache para otimização de performance, pela sofisticação de sua interface de usuário construída com a biblioteca Rich e pela inclusão de um sistema de alertas configurável que opera em background para notificações proativas.
+LexiconCLI e um sistema interativo de analise financeira desenvolvido em Python para operacao no terminal. O projeto foi pensado para investidores, traders, analistas quantitativos e pesquisadores de mercado que precisam reunir monitoramento, analise tecnica, indicadores macroeconomicos, previsao, simulacao de cenarios e alertas em uma unica ferramenta.
 
-## 🚀 Executável Disponível
+O projeto agora segue uma organizacao orientada a servicos. O cliente de terminal fica em `client-cli`, as capacidades de backend ficam em `service-api/service-python`, os ativos de PostgreSQL e TimescaleDB ficam em `service-api/service-postgresql`, a infraestrutura fica em `infra`, os scripts operacionais ficam em `scripts` e a documentacao tecnica fica em `docs`.
 
-📦 **Download Direto**: Executável pré-compilado disponível na seção [Releases](https://github.com/thiagodifaria/LexiconCLI/releases/download/v2.0.0/LexiconCLI.exe) - Sem necessidade de instalação do Python!
+A aplicacao ainda pode rodar localmente como CLI com SQLite. Quando a infraestrutura opcional e habilitada, ela tambem pode ingerir ticks em tempo real via WebSocket, persistir series temporais no TimescaleDB, publicar eventos no RabbitMQ, rastrear experimentos com MLflow ou Weights & Biases e executar comandos explicitos de retreinamento e alocacao de portfolio.
 
-## 🎯 Funcionalidades
+## Estrutura do Repositorio
 
-- ✅ **Monitoramento de mercado**: Dashboard interativo com ações e índices globais
-- ✅ **Watchlist personalizada**: Acompanhamento de ativos favoritos do usuário
-- ✅ **Indicadores macroeconômicos**: Visualização de dados econômicos chave (BCB, FRED, Nasdaq)
-- ✅ **Análise técnica completa**: Ampla gama de indicadores técnicos avançados
-  - **Tendência**: SMA/EMA (9, 21, 50, 200 dias), MACD, Bandas de Bollinger, ADX
-  - **Momentum**: RSI, Oscilador Estocástico, ROC, Williams %R
-  - **Volume**: OBV (On-Balance Volume), Volume SMA
-  - **Volatilidade**: ATR, Desvio Padrão dos Retornos, Volatilidade Rolling
-- ✅ **Modelos de previsão avançados**: LSTM Bayesian e Prophet com quantificação de incerteza
-- ✅ **Simulação Monte Carlo**: Análise probabilística de cenários futuros com GBM
-- ✅ **Análise fundamentalista**: Balanços patrimoniais, DRE e fluxos de caixa via Finnhub
-- ✅ **Backtesting inteligente**: Teste de estratégias com otimização automática de parâmetros
-- ✅ **Sistema de alertas em tempo real**: Notificações baseadas em preços, RSI, MACD e condições personalizadas
-- ✅ **Data augmentation**: Técnicas avançadas (jittering, time/magnitude warping) para datasets pequenos
-- ✅ **Feature selection adaptativo**: Seleção automática de features baseada no dataset
-- ✅ **Ensemble learning**: Combinação de múltiplos modelos para maior precisão
-- ✅ **Múltiplas fontes de dados**: Integração com 7+ APIs financeiras diversas
-- ✅ **Sistema de cache inteligente**: Otimização de performance com SQLite
-- ✅ **Exportação de dados**: CSV, TXT e outros formatos
-- ✅ **Interface rica no terminal**: Menus navegáveis e gráficos interativos com Rich
+```text
+client-cli/
+  main.py
+  app_controller.py
+  views/
 
-## 🔧 Tecnologias
+service-api/
+  service-python/
+    config/
+    controllers/
+    models/
+    utils/
+    workers/
+    tests/
+  service-postgresql/
+    migrations/
+    postgresql.conf
+    seeds/
 
-### Core Technologies
-- **Python 3.9+**: Linguagem de programação principal
-- **Rich**: Interface de usuário avançada para terminal com suporte a cores e layouts
-- **Plotext**: Visualização de gráficos ASCII no terminal
-- **SQLite**: Armazenamento local, cache e persistência de dados
-- **Pandas & NumPy**: Manipulação e análise de dados de alta performance
+infra/
+  Dockerfile
+  compose.yaml
 
-### Machine Learning & AI
-- **TensorFlow/Keras**: Framework principal para deep learning
-- **Scikit-learn**: Pré-processamento, métricas e validação de modelos
-- **Prophet (Meta)**: Análise de tendências, sazonalidades e decomposição temporal
-- **SciPy**: Algoritmos científicos e otimização numérica
-- **TA-Lib**: Biblioteca especializada em análise técnica
-
-### Análise Quantitativa Avançada
-- **Monte Carlo Dropout**: Quantificação de incerteza bayesiana
-- **Focal Loss**: Função de perda especializada para classes desbalanceadas
-- **Bayesian Neural Networks**: Redes neurais com quantificação de incerteza
-- **Adaptive Feature Selection**: Seleção inteligente de features
-- **Time Series Augmentation**: Aumento de dados para séries temporais
-- **Backtesting Library**: Framework de backtesting profissional
-
-### APIs Integradas
-
-- **Finnhub**: Cotações em tempo real, busca de símbolos e dados fundamentalistas
-- **yfinance**: Dados históricos de mercado e informações corporativas
-- **python-bcb**: Indicadores macroeconômicos brasileiros (IPCA, SELIC, PTAX)
-- **Investpy**: Dados históricos com mapeamento para mercados globais
-- **FRED (Federal Reserve)**: Séries econômicas americanas e indicadores macro
-- **Nasdaq Data Link**: Datasets variados, commodities e dados alternativos
-- **Alpha Vantage**: Dados históricos complementares e análise de sentimento
-
-## 📈 Modelos de Machine Learning
-
-### LSTM Bayesian Avançado
-- **Arquitetura**: Bidirectional LSTM com Monte Carlo Dropout
-- **Quantificação de Incerteza**: Epistemic e aleatoric uncertainty
-- **Features**: Indicadores técnicos + features temporais + sentiment score
-- **Otimização**: Focal Loss para classes desbalanceadas
-- **Validação**: Cross-symbol validation e threshold optimization
-- **Métricas**: Accuracy, F1-weighted, Balanced Accuracy, Cohen's Kappa
-
-### Prophet (Meta) Multivariado
-- **Capacidades**: Análise de tendências, sazonalidades e feriados
-- **Regressores**: Indicadores técnicos como variáveis externas
-- **Intervalos de Confiança**: Previsões com bandas de incerteza
-- **Detecção**: Changepoints automáticos e anomalias
-- **Validação**: Backtesting temporal com métricas robustas
-
-### Monte Carlo Simulator
-- **Modelo**: Geometric Brownian Motion (GBM) 
-- **Parâmetros**: Drift e volatilidade calculados dinamicamente
-- **Simulações**: Até 10.000 trajetórias paralelas
-- **Estatísticas**: Percentis, VaR, métricas de risco
-- **Visualização**: Gráficos ASCII interativos
-
-### Ensemble & Hybrid Methods
-- **Ensemble LSTM + Monte Carlo**: Voting ponderado entre modelos
-- **Uncertainty Aggregation**: Combinação de incertezas epistêmicas
-- **Adaptive Weighting**: Pesos dinâmicos baseados em performance
-- **Calibration**: Calibração de incerteza para melhor confiabilidade
-
-### Avaliação de Modelos
-```
-Métricas LSTM Bayesian - AAPL:
-├─ Accuracy: 93.8%
-├─ F1-Score (Weighted): 0.645
-├─ Balanced Accuracy: 38.0%
-├─ Mean Confidence: 0.742
-├─ Epistemic Uncertainty: 0.156
-└─ Threshold Optimization: Enabled
+scripts/
+docs/
 ```
 
-## 🎯 Recursos Avançados
+## Funcionalidades
 
-### Sistema de Cache Inteligente
-- **Backend**: SQLite com compressão automática
-- **Estratégias**: TTL diferenciado por fonte de dados
-- **Otimização**: Cache-aside pattern com fallback graceful
-- **Persistência**: Modelos treinados e configurações de usuário
+- Monitoramento de mercado em dashboard interativo.
+- Watchlist personalizada para ativos e indices escolhidos pelo usuario.
+- Indicadores macroeconomicos do BCB, FRED e Nasdaq Data Link.
+- Analise tecnica com indicadores de tendencia, momentum, volume e volatilidade.
+- Fluxos de previsao com Bayesian LSTM e Prophet.
+- Quantificacao de incerteza com Monte Carlo Dropout.
+- Simulacao Monte Carlo com Geometric Brownian Motion.
+- Analise fundamentalista por demonstrativos financeiros via Finnhub.
+- Backtesting para validacao de estrategias.
+- Alertas proativos por preco, RSI e cruzamentos MACD.
+- Exportacao de dados em CSV e TXT.
+- Interface rica no terminal com menus, tabelas e graficos.
 
-### Sistema de Alertas Proativo
-- **Monitoramento**: Thread dedicada para verificação contínua
-- **Tipos de Alerta**: 
-  - Preços (acima/abaixo de threshold)
-  - Indicadores técnicos (RSI sobrecompra/sobrevenda)
-  - Cruzamentos de médias móveis e sinais MACD
-  - Condições customizadas programáveis
-- **Notificações**: Sistema operacional + console em tempo real
-- **Configuração**: Interface interativa para criação/edição
+## Superficies da Aplicacao
 
-### Data Augmentation Avançado
-- **Técnicas Implementadas**:
-  - **Jittering**: Adição de ruído gaussiano calibrado
-  - **Time Warping**: Distorção temporal com cubic splines
-  - **Magnitude Warping**: Scaling não-linear de amplitudes
-- **Segurança**: Timeout protection e validação de qualidade
-- **Adaptativo**: Multiplicadores baseados no tamanho do dataset
+O LexiconCLI expoe o mesmo motor financeiro por tres superficies praticas:
 
-### Feature Selection Inteligente
-- **Métodos**: Correlation filtering, variance thresholding, mutual information
-- **Adaptativo**: Configuração automática baseada no tamanho do dataset
-- **Validação**: Cross-validation para seleção robusta
-- **Análise**: Matriz de correlação e grupos de redundância
+- O cliente interativo de terminal em `client-cli`, usado para dashboards, fluxos de analise, execucao de modelos, alertas e exportacoes.
+- O executor operacional em `service-api/service-python/ops.py`, usado para inicializacao de banco, retreinamento, verificacoes de ingestao em tempo real, consulta de ticks recentes e alocacao de portfolio.
+- O processo worker em `service-api/service-python/workers`, atualmente usado para entrega de alertas por meio do broker de eventos.
 
-### Arquitetura Adaptativa
-- **Dynamic LSTM**: Arquitetura ajustada automaticamente ao dataset
-- **Complexity Management**: Controle da relação samples/parameters
-- **Regularization**: Dropout e L2 adaptativos
-- **Early Stopping**: Parada inteligente com múltiplas métricas
+Essa separacao mantem a experiencia de terminal focada e torna rotinas de backend acionaveis por scripts e containers.
 
-### Tratamento de Classes Desbalanceadas
-- **Focal Loss**: Implementação customizada com parâmetros adaptativos
-- **Class Weighting**: Estratégias balanced, balanced_smooth e inverse
-- **Threshold Optimization**: Busca grid para otimização de F1-score
-- **Oversampling**: Técnicas de data augmentation específicas
+## Fontes de Dados
 
-### Exportação e Relatórios
-- **Formatos**: CSV estruturado, TXT formatado, JSON configurações
-- **Conteúdo**: Dados históricos, indicadores calculados, resultados de backtesting
-- **Automação**: Relatórios schedulados e exportação em batch
-- **Compressão**: Otimização automática para arquivos grandes
+O LexiconCLI integra:
 
-## 📋 Pré-requisitos
+- Finnhub para cotacoes, busca de simbolos, noticias corporativas e demonstrativos financeiros.
+- yfinance para dados historicos de mercado.
+- Alpha Vantage para dados historicos complementares e sentimento de noticias.
+- python-bcb para series macroeconomicas brasileiras como IPCA, SELIC e PTAX.
+- FRED para series macroeconomicas dos Estados Unidos.
+- Nasdaq Data Link para datasets alternativos e commodities.
+- Investpy para cobertura historica complementar.
 
-- Python 3.9 ou superior
-- Pip (gerenciador de pacotes)
+## Indicadores Tecnicos
 
-## 🚀 Instalação
+O modulo de analise tecnica inclui:
 
-```bash
-# Clonar o repositório
-git clone https://github.com/thiagodifaria/LexiconCLI.git
-cd LexiconCLI
+- Tendencia: SMA, EMA, MACD, Bandas de Bollinger e ADX.
+- Momentum: RSI, Oscilador Estocastico, ROC e Williams %R.
+- Volume: OBV e medias moveis de volume.
+- Volatilidade: ATR, volatilidade movel e desvio padrao dos retornos.
 
-# Criar ambiente virtual (recomendado)
-python -m venv venv
+O fluxo de indicadores e centralizado em `AnalysisController` e `IndicadoresTecnicos`. Dados historicos OHLCV sao normalizados antes dos calculos para permitir que provedores com nomes de colunas diferentes alimentem o mesmo caminho de analise.
 
-# Ativar ambiente virtual
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
+## Modelos de Previsao
 
-# Instalar dependências
-pip install -r requirements.txt
+### Bayesian LSTM
+
+O pipeline LSTM suporta classificacao direcional, features tecnicas, features temporais, score de sentimento, Focal Loss, pesos de classe, selecao adaptativa de features, otimizacao de thresholds e inferencia com incerteza.
+
+As metricas rastreadas incluem accuracy, F1 ponderado, balanced accuracy, metricas de confianca, distribuicao de classes e indicadores de overfitting.
+
+### Prophet
+
+O fluxo Prophet suporta modelagem de tendencia e sazonalidade, regressores externos derivados de indicadores tecnicos, intervalos de confianca, backtesting temporal e carregamento de modelo salvo.
+
+### Simulacao Monte Carlo
+
+O simulador Monte Carlo usa Geometric Brownian Motion com drift e volatilidade calculados dinamicamente. Ele gera trajetorias simuladas, percentis, estatisticas de risco e visualizacoes no terminal.
+
+## Backtesting e Simulacao
+
+O modulo de backtesting inclui uma estrategia de cruzamento de medias moveis simples com janelas configuraveis, capital inicial e comissao. Ele pode executar um backtest direto ou otimizar as janelas curta e longa sob uma restricao simples.
+
+O fluxo de Monte Carlo valida parametros antes da simulacao, verifica se os dados de preco sao utilizaveis, limita parametros extremos e retorna tanto a matriz de trajetorias simuladas quanto metadados para relatorio.
+
+## Recursos Avancados de Dados e Modelagem
+
+O projeto inclui:
+
+- Data augmentation para series temporais pequenas com jittering, time warping e magnitude warping.
+- Selecao adaptativa de features com filtros de correlacao, variancia e mutual information.
+- Controle dinamico de complexidade da LSTM com base no tamanho do dataset e quantidade de features.
+- Focal Loss e class weighting para classes direcionais desbalanceadas.
+- Otimizacao de thresholds para melhorar F1-score em classes desbalanceadas.
+- Fluxos de ensemble combinando saidas da LSTM com contexto de simulacao.
+
+## Arquitetura de Tempo Real e Eventos
+
+A ingestao em tempo real esta disponivel via WebSocket da Finnhub. Quando habilitado, o stream assina simbolos selecionados, reconecta apos quedas, grava ticks no TimescaleDB quando disponivel e publica eventos `market.tick` pela abstracao de broker.
+
+RabbitMQ pode ser habilitado para entrega distribuida de eventos. Quando RabbitMQ esta desabilitado, o backend usa um broker local em memoria para manter a CLI funcional sem infraestrutura externa.
+
+O worker de alertas consome eventos `alert.triggered` e dispara notificacoes do sistema operacional.
+
+## Persistencia
+
+SQLite continua sendo a camada padrao de persistencia local para:
+
+- Cache de APIs.
+- Watchlist.
+- Preferencias visuais.
+- Definicoes de alertas.
+
+TimescaleDB e opcional e usado para:
+
+- Ticks de mercado em tempo real.
+- Candles OHLCV historicos.
+- Consultas de series temporais de mercado.
+
+O schema do TimescaleDB fica em `service-api/service-postgresql/migrations`, e as configuracoes de runtime do PostgreSQL ficam em `service-api/service-postgresql/postgresql.conf`.
+
+## Fluxo de Dados
+
+O fluxo tipico de dados e:
+
+1. `DataController` solicita cotacoes, historico ou series macroeconomicas.
+2. `MarketDataProvider` consulta o provedor preferencial e aplica fallback quando possivel.
+3. `CacheAPIManager` armazena respostas de API com TTL por fonte.
+4. Candles historicos podem ser gravados no TimescaleDB quando habilitado.
+5. Modulos de analise, previsao, simulacao ou backtesting recebem DataFrames normalizados.
+6. As views da CLI renderizam os resultados como tabelas Rich ou graficos Plotext.
+
+Ticks em tempo real seguem um caminho separado: `FinnhubRealtimeStream` recebe mensagens WebSocket de trades, persiste ticks via `TimescaleStore` quando disponivel e publica `market.tick` pela abstracao de broker.
+
+## MLOps
+
+O projeto inclui um adaptador de rastreamento de experimentos para MLflow e suporte opcional a Weights & Biases.
+
+MLflow e habilitado por padrao com backend local em arquivo. Treinos podem registrar parametros, metricas e artefatos. Isso da aos fluxos de LSTM e Prophet um historico rastreavel de experimentos, em vez de apenas salvar modelos locais.
+
+## Continuous Training
+
+Continuous Training e exposto como comando operacional explicito, e nao como processo automatico oculto. O operador pode retreinar um ou mais simbolos, capturar metricas e registrar a execucao no MLflow.
+
+Exemplo:
+
+```powershell
+.\scripts\train.ps1 AAPL MSFT --period 5y
 ```
 
-## ⚙️ Configuração
+O comando usa o mesmo `DataController` e `PredictionController` usados pela CLI. Isso evita uma logica paralela de treino e mantem o comportamento dos modelos consistente entre execucao interativa e operacional.
 
-1. Crie um arquivo `.env` na raiz do projeto:
-   ```bash
-   touch .env  # Linux/Mac
-   ```
+## Pesquisa de Alocacao de Portfolio
 
-2. Adicione suas chaves de API no arquivo `.env`:
-   ```env
-   # Chaves de API necessárias
-   FINNHUB_API_KEY=sua_chave_finnhub_aqui
-   ALPHA_VANTAGE_API_KEY=sua_chave_alphavantage_aqui
-   FRED_API_KEY=sua_chave_fred_aqui
-   NASDAQ_API_KEY=sua_chave_nasdaq_aqui
-   
-   # Configurações opcionais
-   DEFAULT_PERIOD=1y
-   CACHE_EXPIRATION=3600
-   ```
+O projeto inclui um modulo leve de pesquisa de portfolio. Ele estima retorno anualizado e volatilidade a partir de precos historicos de fechamento e sugere pesos normalizados usando uma politica baseada em risco e retorno.
 
-**Nota**: As APIs yfinance, python-bcb e investpy não requerem chaves para uso básico.
+Essa funcionalidade e uma ferramenta de pesquisa e nao executa ordens.
 
-## 🖥️ Executando a Aplicação
+Exemplo:
 
-```bash
-# Com ambiente virtual ativado
-python main.py
+```powershell
+.\scripts\portfolio.ps1 AAPL MSFT NVDA --period 2y --risk-aversion 2.0
 ```
 
-**Windows**: O sistema tentará abrir em uma nova janela de console para melhor experiência visual.
+## Instalacao
 
-## 📊 Como Usar
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r .\service-api\service-python\requirements.txt
+```
+
+## Executando a CLI
+
+```powershell
+.\scripts\run-cli.ps1
+```
+
+Execucao direta:
+
+```powershell
+$env:PYTHONPATH = "$PWD\service-api\service-python;$PWD\client-cli"
+python .\client-cli\main.py
+```
+
+## Execucao em Container
+
+Subir infraestrutura:
+
+```powershell
+docker compose -f .\infra\compose.yaml up -d postgres rabbitmq
+```
+
+Inicializar bancos:
+
+```powershell
+docker compose -f .\infra\compose.yaml run --rm lexicon-ops init-db
+```
+
+Rodar a CLI:
+
+```powershell
+docker compose -f .\infra\compose.yaml run --rm lexicon-cli
+```
+
+Rodar o worker de alertas:
+
+```powershell
+docker compose -f .\infra\compose.yaml --profile workers up lexicon-worker-alerts
+```
+
+## Configuracao
+
+Crie `.env` na raiz do repositorio.
+
+```env
+FINNHUB_API_KEY=
+ALPHA_VANTAGE_API_KEY=
+FRED_API_KEY=
+NASDAQ_DATA_LINK_API_KEY=
+
+REALTIME_ENABLED=false
+TIMESCALE_ENABLED=false
+POSTGRES_DSN=postgresql://postgres:postgres@localhost:5432/lexicon
+
+RABBITMQ_ENABLED=false
+RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+
+MLFLOW_ENABLED=true
+MLFLOW_TRACKING_URI=service-api/service-python/mlruns
+MLFLOW_EXPERIMENT_NAME=lexiconcli
+
+WANDB_ENABLED=false
+WANDB_PROJECT=lexiconcli
+```
+
+## Uso
+
+Apos iniciar a CLI, o menu principal oferece:
+
+1. Dashboard com ativos e indices monitorados.
+2. Analise de ativo com grafico historico, indicadores tecnicos, simulacao Monte Carlo, dados fundamentalistas e backtesting.
+3. Indicadores macroeconomicos.
+4. Previsoes com LSTM ou Prophet.
+5. Watchlist, configuracao de alertas, preferencias visuais e exportacao.
+
+## Validacao e Cobertura de Testes
+
+A suite de testes cobre comportamento de cache, operacoes do controlador de dados, persistencia SQLite, indicadores tecnicos, verificacao de alertas, preparacao de modelos LSTM/Prophet e metricas do avaliador.
+
+O comando atual de validacao e:
+
+```powershell
+.\scripts\run-tests.ps1
+```
+
+A configuracao dos containers pode ser validada com:
+
+```powershell
+docker compose -f .\infra\compose.yaml config --quiet
+```
+
+## Limites Operacionais
+
+O projeto e voltado para analise e pesquisa. Ele nao envia ordens para corretoras, nao gerencia contas reais e nao se apresenta como motor de execucao automatica de trading. Alocacao de portfolio e Continuous Training sao ferramentas explicitas de investigacao e gestao de modelos, nao agentes autonomos de negociacao.
+
+## Testes
+
+```powershell
+.\scripts\run-tests.ps1
+```
+
+Comando direto equivalente:
+
+```powershell
+$env:PYTHONPATH = "$PWD\service-api\service-python;$PWD\client-cli"
+pytest .\service-api\service-python\tests
+```
+
+## Screenshots
 
 ### Menu Principal
-Após iniciar a aplicação, você verá um dashboard com visão geral do mercado. Navegue pelos menus usando as opções numéricas:
 
-1. **Dashboard**: Painel de dados de ativos
-2. **Análise de Ativo**: Insira um símbolo para visualizar gráficos e indicadores técnicos
-3. **Indicadores Macro**: Dados detalhados do BCB, FRED e Nasdaq Data Link
-4. **Previsões**: Execute modelos LSTM Bayesian ou Prophet com métricas e gráficos comparativos
-5. **Watchlist & Configurações**: Gerencie favoritos, alertas e preferências
+![Menu Principal](docs/assets/images/menu_principal.png)
 
-### Configuração de Alertas
-```
-Tipo de Alerta:
-1. Preço acima de valor
-2. RSI em sobrecompra (>70)
-3. MACD cruzamento altista
-4. Condições personalizadas
-```
+### Dashboard
 
-## 🧪 Testes
+![Dashboard](docs/assets/images/dashboard_principal.png)
 
-```bash
-# Executar todos os testes
-pytest
+### Analise de Ativo
 
-# Executar com relatório de cobertura
-pytest --cov=controllers --cov=models --cov=views --cov=utils tests/
+![Analise AMZN](docs/assets/images/analise_amzn.png)
 
-# Testes específicos
-pytest tests/test_models.py::test_lstm_prediction
-```
+### Previsao LSTM
 
-## 📷 Screenshots
+![Previsao LSTM](docs/assets/images/previsao_lstm_amzn.png)
 
-### Menu Principal
-![Menu Principal](./images/menu_principal.png)
+## Empacotamento Executavel
 
-### Dashboard Principal
-![Dashboard Principal](./images/dashboard_principal.png)
+Os ativos de empacotamento com PyInstaller ficam em `scripts/pyinstaller`. O fluxo anterior de executavel standalone continua disponivel como alvo de empacotamento, mas o spec deve refletir a estrutura atual antes de gerar um novo artefato de release.
 
-### Análise de Ativo - (AMZN)
-![Análise AMZN](./images/analise_amzn.png)
+## Licenca
 
-### Previsão LSTM - (AMZN)
-![Previsão LSTM](./images/previsao_lstm_amzn.png)
+Este projeto esta licenciado sob a licenca MIT. Veja [LICENSE](LICENSE).
 
-## 🔄 Fluxo de Desenvolvimento
-
-1. Clone o repositório
-2. Crie uma branch para sua feature (`git checkout -b feature/nome-da-feature`)
-3. Implemente suas alterações seguindo o padrão MVC
-4. Adicione testes correspondentes
-5. Execute todos os testes (`pytest`)
-6. Formate o código (seguindo PEP 8)
-7. Faça commit das alterações (`git commit -m 'feat: adiciona nova funcionalidade'`)
-8. Envie para a branch (`git push origin feature/nome-da-feature`)
-9. Abra um Pull Request
-
-## 🚢 Deploy
-
-### Executável Standalone
-```bash
-# Criar executável com PyInstaller
-pip install pyinstaller
-pyinstaller --onefile --name LexiconCLI main.py
-```
-
-## 📜 Licença
-
-Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
-
-## 📞 Contato
+## Contato
 
 Thiago Di Faria - [thiagodifaria@gmail.com](mailto:thiagodifaria@gmail.com)
 

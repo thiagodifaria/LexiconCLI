@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "../../client-cli"]
+
+[tool.ruff]
+line-length = 120

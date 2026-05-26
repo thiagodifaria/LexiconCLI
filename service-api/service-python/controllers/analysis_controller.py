@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 
 class AnalysisController:
     def __init__(self):
-        pass
+        self.default_macd_signal_column = "MACD_Signal"
 
     def calcular_todos_indicadores_principais(self, df_ohlcv: pd.DataFrame) -> pd.DataFrame:
         if df_ohlcv is None or df_ohlcv.empty:
@@ -124,6 +124,29 @@ class AnalysisController:
                     limiar = condicao.get('limiar_rsi', 30)
                     if rsi_val is not None and rsi_val < limiar:                                  
                         mensagem_final += f" - RSI ({rsi_val:.2f}) em SOBREVENDA (< {limiar})!"
+                        disparado = True
+
+                elif tipo_alerta in ('macd_cruzamento_altista', 'macd_cruzamento_baixista'):
+                    if len(df_com_indicadores) < 2:
+                        continue
+                    registro_anterior = df_com_indicadores.iloc[-2]
+                    macd_atual = ultimo_registro.get('MACD')
+                    sinal_atual = ultimo_registro.get(self.default_macd_signal_column)
+                    macd_anterior = registro_anterior.get('MACD')
+                    sinal_anterior = registro_anterior.get(self.default_macd_signal_column)
+
+                    valores = [macd_atual, sinal_atual, macd_anterior, sinal_anterior]
+                    if any(pd.isna(valor) for valor in valores):
+                        continue
+
+                    cruzou_para_cima = macd_anterior <= sinal_anterior and macd_atual > sinal_atual
+                    cruzou_para_baixo = macd_anterior >= sinal_anterior and macd_atual < sinal_atual
+
+                    if tipo_alerta == 'macd_cruzamento_altista' and cruzou_para_cima:
+                        mensagem_final += f" - MACD cruzou acima da linha de sinal ({macd_atual:.4f} > {sinal_atual:.4f})."
+                        disparado = True
+                    elif tipo_alerta == 'macd_cruzamento_baixista' and cruzou_para_baixo:
+                        mensagem_final += f" - MACD cruzou abaixo da linha de sinal ({macd_atual:.4f} < {sinal_atual:.4f})."
                         disparado = True
                 
                 if disparado:

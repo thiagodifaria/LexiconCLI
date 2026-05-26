@@ -43,6 +43,7 @@ ENV/
 .env.production
 .env.staging
 config/api_keys.py
+service-api/service-python/config/api_keys.py
 *.key
 *.pem
 *.p12
@@ -53,6 +54,12 @@ secrets/
 data/*.db
 data/*.sqlite
 data/*.sqlite3
+service-api/service-python/data/
+service-api/service-python/logs/
+service-api/service-python/exports/
+service-api/service-python/trained_models/
+service-api/service-python/mlruns/
+client-cli/logs/
 *.db-journal
 *.db-wal
 *.db-shm

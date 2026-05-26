@@ -493,10 +493,11 @@ class MainView:
             
             self.console.clear()
             if not forecast_df.empty:
+                if "yhat" in forecast_df.columns and "Previsto" not in forecast_df.columns:
+                    forecast_df = forecast_df.rename(columns={"yhat": "Previsto"})
                 self.console.print(Panel(Text(f"Previsões Futuras com Modelo Prophet Salvo - {simbolo}", justify="center", style="bold magenta")))
                 self.console.print(criar_tabela_previsoes_prophet(forecast_df.tail(periodos_previsao)))
-                
-                self.console.print("\n[yellow]Gráfico de previsão com modelo salvo ainda não implementado.[/yellow]")
+                self.console.print(plotar_previsoes_prophet(pd.DataFrame(), forecast_df.tail(periodos_previsao), simbolo))
             else:
                 self.console.print(Panel(Text(f"Falha ao gerar previsões com o modelo Prophet salvo para {simbolo}.", style="bold red"), title="Erro na Previsão Prophet"))
 
@@ -709,9 +710,20 @@ class MainView:
                 self.console.input("Pressione Enter para continuar...")
             
             elif escolha_alertas == 3: 
-                 self.console.print("\nFuncionalidade 'Modificar Alerta' ainda não implementada.")
-                 self.console.print("Aqui você poderá selecionar um alerta existente e alterar seus parâmetros (símbolo, tipo, condição, mensagem).")
-                 self.console.input("Pressione Enter para continuar...")
+                alertas = self.data_controller.listar_alertas_db()
+                if not alertas:
+                    self.console.print("[yellow]Nao ha alertas para modificar.[/yellow]")
+                else:
+                    id_alerta_editar = menu_instance.solicitar_id_alerta_para_editar(alertas)
+                    if id_alerta_editar is not None:
+                        alerta_atual = next((alerta for alerta in alertas if alerta.get("id_alerta") == id_alerta_editar), None)
+                        if alerta_atual:
+                            novos_dados = menu_instance.solicitar_detalhes_edicao_alerta(alerta_atual)
+                            if novos_dados and self.data_controller.atualizar_alerta_db(id_alerta_editar, novos_dados):
+                                self.console.print(f"[green]Alerta ID {id_alerta_editar} atualizado com sucesso![/green]")
+                            else:
+                                self.console.print(f"[red]Erro ao atualizar o alerta ID {id_alerta_editar}.[/red]")
+                self.console.input("Pressione Enter para continuar...")
 
             elif escolha_alertas == 4: 
                 alertas = self.data_controller.listar_alertas_db()

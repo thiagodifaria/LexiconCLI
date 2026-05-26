@@ -148,8 +148,10 @@ class MenuPrincipal:
         self.console.print("  2. Preço Abaixo De")
         self.console.print("  3. RSI Sobrecompra (RSI > X)")
         self.console.print("  4. RSI Sobrevenda (RSI < Y)")
+        self.console.print("  5. MACD Cruzamento Altista")
+        self.console.print("  6. MACD Cruzamento Baixista")
         
-        tipo_alerta_escolha = IntPrompt.ask("Escolha o tipo de alerta", choices=["1", "2", "3", "4"], show_choices=False)
+        tipo_alerta_escolha = IntPrompt.ask("Escolha o tipo de alerta", choices=["1", "2", "3", "4", "5", "6"], show_choices=False)
         
         condicao = {}
         tipo_alerta_str = ""
@@ -172,6 +174,12 @@ class MenuPrincipal:
             tipo_alerta_str = "rsi_sobrevenda"
             limiar = IntPrompt.ask("Limiar de RSI para sobrevenda", default=30)
             condicao = {'limiar_rsi': limiar}
+        elif tipo_alerta_escolha == 5:
+            tipo_alerta_str = "macd_cruzamento_altista"
+            condicao = {}
+        elif tipo_alerta_escolha == 6:
+            tipo_alerta_str = "macd_cruzamento_baixista"
+            condicao = {}
         else:
             return None 
 
@@ -184,6 +192,39 @@ class MenuPrincipal:
             "ativo": True,
             "mensagem_customizada": mensagem if mensagem.strip() else None
         }
+
+    def solicitar_detalhes_edicao_alerta(self, alerta_atual: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        self.console.print("\n[bold]Modificar Alerta[/bold]")
+        simbolo = Prompt.ask("Símbolo", default=alerta_atual.get("simbolo", ""))
+        ativo = Confirm.ask("Alerta ativo?", default=bool(alerta_atual.get("ativo", True)))
+        mensagem = Prompt.ask("Mensagem customizada", default=alerta_atual.get("mensagem_customizada") or "")
+        novos_dados = {
+            "simbolo": simbolo.upper().strip(),
+            "ativo": ativo,
+            "mensagem_customizada": mensagem.strip() or None,
+        }
+        if Confirm.ask("Deseja alterar tipo e condição?", default=False):
+            novo_alerta = self.solicitar_detalhes_novo_alerta(simbolo_padrao=simbolo)
+            if not novo_alerta:
+                return None
+            novos_dados.update({
+                "tipo_alerta": novo_alerta["tipo_alerta"],
+                "condicao": novo_alerta["condicao"],
+            })
+        return novos_dados
+
+    def solicitar_id_alerta_para_editar(self, alertas: List[Dict[str, Any]]) -> Optional[int]:
+        if not alertas:
+            self.console.print("[yellow]Não há alertas para editar.[/yellow]")
+            return None
+        from views.terminal.tables import criar_tabela_alertas_configurados
+        self.console.print(criar_tabela_alertas_configurados(alertas))
+        ids_validos = [str(a['id_alerta']) for a in alertas] + ["0"]
+        id_alerta_str = Prompt.ask("Digite o ID do alerta a editar (ou 0 para cancelar)", choices=ids_validos, show_choices=False)
+        id_alerta = int(id_alerta_str)
+        if id_alerta == 0:
+            return None
+        return id_alerta
 
     def solicitar_id_alerta_para_remover(self, alertas: List[Dict[str, Any]]) -> Optional[int]:
         if not alertas:

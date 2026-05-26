@@ -17,11 +17,15 @@ def set_windows_console_title(title):
             print(f"Aviso: Não foi possível definir o título do console via ctypes: {e}", file=sys.stderr)
 
 def main_application_logic():
-    project_root_for_logic = os.path.dirname(os.path.abspath(__file__))
-    if project_root_for_logic not in sys.path:
-        sys.path.insert(0, project_root_for_logic)
+    cli_root = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(cli_root, '..'))
+    service_python_root = os.path.join(project_root, 'service-api', 'service-python')
 
-    from controllers.app_controller import AppController
+    for path in (cli_root, service_python_root):
+        if path not in sys.path:
+            sys.path.insert(0, path)
+
+    from app_controller import AppController
     from models.database import inicializar_db
     from utils.logger import configurar_logger
 

@@ -10,6 +10,7 @@ from models.prediction.lstm_model import ModeloLSTM
 from models.prediction.prophet_model import ModeloProphet
 from models.prediction.evaluator import ModelEvaluator
 from models.simulation.monte_carlo_simulator import MonteCarloSimulator
+from models.mlops_tracking import ExperimentTracker
 from utils.logger import logger
 from datetime import datetime
 from config.settings import (
@@ -58,7 +59,8 @@ class PredictionController:
         self.augmentation_engine = None
         self.feature_selector = None
         self.monte_carlo_simulator = MonteCarloSimulator()
-        self.MODEL_SAVE_PATH = "data/trained_models/"
+        self.experiment_tracker = ExperimentTracker()
+        self.MODEL_SAVE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "trained_models")
         if not os.path.exists(self.MODEL_SAVE_PATH):
             os.makedirs(self.MODEL_SAVE_PATH)
             logger.info(f"Model directory '{self.MODEL_SAVE_PATH}' created")
@@ -166,7 +168,7 @@ class PredictionController:
                 'lower': CLASSIFICATION_THRESHOLDS.get('fallback_lower', -0.008)
             }
 
-    def _adicionar_features_tecnicas_completas(self, df_dados: pd.DataFrame, coluna_target: str = 'close') -> pd.DataFrame:
+    def _adicionar_features_tecnicas_completas(self, df_dados: pd.DataFrame, coluna_target: str = 'close', simbolo: str = None) -> pd.DataFrame:
         logger.info("Adding complete technical features for automatic selection...")
         
         df_features = df_dados.copy()
@@ -247,15 +249,18 @@ class PredictionController:
             df_features['day_of_week'] = 0.5
             df_features['month'] = 0.5
         
-        df_features['sentiment_score'] = self._get_sentiment_score(coluna_target)
+        df_features['sentiment_score'] = self._get_sentiment_score(simbolo or coluna_target)
         
         return df_features
 
     def _get_sentiment_score(self, simbolo):
-        """
-        PLACEHOLDER: Get sentiment score for symbol.
-        Returns neutral (0.0) for now, prepared for future integration.
-        """
+        if not simbolo or simbolo.lower() in {"close", "adj close"}:
+            return 0.0
+        try:
+            if self.data_controller and hasattr(self.data_controller.provider, "obter_sentimento_noticias"):
+                return float(self.data_controller.provider.obter_sentimento_noticias(simbolo))
+        except Exception as exc:
+            logger.warning(f"Sentiment score unavailable for {simbolo}: {exc}")
         return 0.0
 
     def _perform_dataset_analysis(self, df_dados: pd.DataFrame):
@@ -404,7 +409,7 @@ class PredictionController:
 
         logger.info("Starting intelligent pipeline")
         
-        df_dados_completos = self._adicionar_features_tecnicas_completas(df_dados_completos, coluna_target)
+        df_dados_completos = self._adicionar_features_tecnicas_completas(df_dados_completos, coluna_target, simbolo)
         
         dataset_analysis = self._perform_dataset_analysis(df_dados_completos)
         
@@ -501,6 +506,12 @@ class PredictionController:
                 logger.info(f"Intelligent LSTM model for {simbolo} saved")
             except Exception as e:
                 logger.error(f"Error saving intelligent LSTM model for {simbolo}: {e}")
+
+        with self.experiment_tracker.run(
+            f"lstm-standard-{simbolo}",
+            {"symbol": simbolo, "features": selected_features, "model": "standard_lstm"},
+        ):
+            self.experiment_tracker.log_metrics(metricas)
         
         return self.modelo_lstm_instancia.model, None, df_comparacao, metricas
 
@@ -532,7 +543,7 @@ class PredictionController:
     
         logger.info("Starting Bayesian LSTM pipeline with uncertainty quantification")
         
-        df_dados_completos = self._adicionar_features_tecnicas_completas(df_dados_completos, coluna_target)
+        df_dados_completos = self._adicionar_features_tecnicas_completas(df_dados_completos, coluna_target, simbolo)
         dataset_analysis = self._perform_dataset_analysis(df_dados_completos)
         selected_features = self._perform_feature_selection(df_dados_completos, coluna_target, dataset_analysis)
         
@@ -673,6 +684,12 @@ class PredictionController:
                 logger.info(f"Bayesian LSTM model for {simbolo} saved")
             except Exception as e:
                 logger.error(f"Error saving Bayesian LSTM model for {simbolo}: {e}")
+
+        with self.experiment_tracker.run(
+            f"lstm-bayesian-{simbolo}",
+            {"symbol": simbolo, "features": selected_features, "model": "bayesian_lstm"},
+        ):
+            self.experiment_tracker.log_metrics(metricas)
         
         return self.modelo_lstm_instancia.bayesian_model, None, df_comparacao, metricas
 
