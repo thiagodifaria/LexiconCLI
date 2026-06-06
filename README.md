@@ -1,13 +1,28 @@
 # LexiconCLI
 
-LexiconCLI is a terminal-first financial analysis platform built in Python. It combines market monitoring, technical analysis, macroeconomic indicators, probabilistic forecasting, Monte Carlo simulation, backtesting, proactive alerts and experiment tracking in a service-oriented project layout.
+![LexiconCLI](https://img.shields.io/badge/LexiconCLI-Financial%20Analysis-111827?style=for-the-badge&logo=python&logoColor=white)
 
-## Documentation
+**LexiconCLI is a terminal-first financial analysis platform built in Python. It combines market monitoring, technical analysis, macroeconomic indicators, probabilistic forecasting, Monte Carlo simulation, backtesting, proactive alerts and experiment tracking in a service-oriented project layout.**
 
-- [Detailed English documentation](README_EN.md)
-- [Documentacao detalhada em portugues](README_PT.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Operations](docs/OPERATIONS.md)
+[![Version](https://img.shields.io/badge/Version-2.2.0-2563EB?style=flat)](README.md)
+[![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=flat&logo=python&logoColor=white)](service-api/service-python)
+[![CLI](https://img.shields.io/badge/Interface-terminal-111827?style=flat)](client-cli)
+[![TimescaleDB](https://img.shields.io/badge/TimescaleDB-optional%20persistence-FDB515?style=flat&logo=timescale&logoColor=111827)](service-api/service-postgresql)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-optional%20events-FF6600?style=flat&logo=rabbitmq&logoColor=white)](infra)
+[![MLflow](https://img.shields.io/badge/MLflow-tracking-0194E2?style=flat&logo=mlflow&logoColor=white)](service-api/service-python)
+[![Runtime](https://img.shields.io/badge/Runtime-Docker%20Compose-2496ED?style=flat&logo=docker&logoColor=white)](infra)
+[![License](https://img.shields.io/badge/License-MIT-success?style=flat)](LICENSE)
+
+---
+
+## Documentation / Documentacao
+
+**Leia em Portugues:** [README_PT.md](README_PT.md)  
+**Read the detailed English README:** [README_EN.md](README_EN.md)  
+**Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)  
+**Operations:** [docs/OPERATIONS.md](docs/OPERATIONS.md)
+
+---
 
 ## Visual Preview
 
